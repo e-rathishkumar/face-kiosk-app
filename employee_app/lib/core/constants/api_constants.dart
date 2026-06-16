@@ -1,6 +1,7 @@
 class ApiConstants {
   ApiConstants._();
 
+  /// Base URL for API
   static const String baseUrl = 'https://rathishkumar-07-face-kiosk.hf.space';
 
   // Auth

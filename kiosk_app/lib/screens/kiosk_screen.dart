@@ -124,7 +124,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
 
     _cameraController = CameraController(
       frontCamera,
-      ResolutionPreset.medium,
+      ResolutionPreset.low,
       enableAudio: false,
       imageFormatGroup: ImageFormatGroup.jpeg,
     );
