@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     gcc \
     g++ \
+    wget \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Set work directory
@@ -35,6 +37,12 @@ RUN mkdir -p $HOME/app/uploads && chown -R user $HOME/app/uploads
 
 # Switch to the non-root user
 USER user
+
+# Download buffalo_sc model from GitHub directly to avoid GDrive quotas
+RUN mkdir -p $HOME/app/models/buffalo_sc && \
+    wget -q https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_sc.zip -O /tmp/buffalo_sc.zip && \
+    unzip -q /tmp/buffalo_sc.zip -d $HOME/app/models/buffalo_sc && \
+    rm /tmp/buffalo_sc.zip
 
 # Start the application using uvicorn on port 7860 (HuggingFace requirement)
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]

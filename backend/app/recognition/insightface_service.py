@@ -4,7 +4,8 @@ from insightface.app import FaceAnalysis
 class InsightFaceService:
 
     app = FaceAnalysis(
-        name="buffalo_l",
+        name="buffalo_sc",
+        root=".",
         allowed_modules=['detection', 'recognition']
     )
 
