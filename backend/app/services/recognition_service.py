@@ -1,58 +1,42 @@
+import time
 from sqlalchemy.orm import Session
 
 from app.recognition.service import RecognitionService
 from app.recognition.embedder import FaceEmbedder
 from app.recognition.matcher import FaceMatcher
 
-from app.repositories.employee_repository import (
-    EmployeeRepository
-)
-
+from app.repositories.employee_repository import EmployeeRepository
 from app.services.file_service import FileService
-from app.services.recognition_log_service import (
-    RecognitionLogService
-)
-from app.services.attendance_service import (
-    AttendanceService
-)
-from app.services.unrecognized_service import (
-    UnrecognizedService
-)
-from app.services.audit_service import (
-    AuditService
-)
+from app.services.recognition_log_service import RecognitionLogService
+from app.services.attendance_service import AttendanceService
+from app.services.unrecognized_service import UnrecognizedService
+from app.services.audit_service import AuditService
 
-from app.core.constants import (
-    FACE_MATCH_THRESHOLD
-)
+from app.core.constants import FACE_MATCH_THRESHOLD
 
 
 class FaceRecognitionService:
 
     @staticmethod
-    def recognize(
-        db: Session,
-        kiosk_id: str,
-        image
-    ):
-        image_path = (
-            FileService.save_face_image(
-                image
-            )
-        )
+    def recognize(db: Session, kiosk_id: str, image):
+        t0 = time.time()
+        image_path = FileService.save_face_image(image)
+        t1 = time.time()
 
-        # Skipped redundant Haar cascade validation. InsightFace already detects faces.
+        embedding = FaceEmbedder.generate_embedding(image_path)
+        t2 = time.time()
 
-        embedding = (
-            FaceEmbedder.generate_embedding(
-                image_path
-            )
-        )
+        match = FaceMatcher.find_best_match(db, embedding)
+        t3 = time.time()
+        
+        print(f"Timing - Save: {t1-t0:.3f}s, Embed: {t2-t1:.3f}s, Match: {t3-t2:.3f}s")
 
-        match = FaceMatcher.find_best_match(
-            db,
-            embedding
-        )
+        timing_details = {
+            "save_s": round(t1 - t0, 3),
+            "embed_s": round(t2 - t1, 3),
+            "match_s": round(t3 - t2, 3),
+            "total_s": round(t3 - t0, 3)
+        }
 
         if not match:
 
@@ -74,7 +58,8 @@ class FaceRecognitionService:
             return {
                 "recognized": False,
                 "reason": "NO_MATCH_FOUND",
-                "unrecognized_entry_created": True
+                "unrecognized_entry_created": True,
+                "timings": timing_details
             }
 
         employee_id, pose, distance = match
@@ -120,7 +105,8 @@ class FaceRecognitionService:
                 "reason": "THRESHOLD_FAILED",
                 "distance": distance,
                 "confidence_score": confidence_score,
-                "unrecognized_entry_created": True
+                "unrecognized_entry_created": True,
+                "timings": timing_details
             }
 
         RecognitionLogService.create_log(
@@ -153,5 +139,6 @@ class FaceRecognitionService:
             "employee_name": employee_name,
             "pose": str(pose),
             "distance": distance,
-            "confidence_score": confidence_score
+            "confidence_score": confidence_score,
+            "timings": timing_details
         }
