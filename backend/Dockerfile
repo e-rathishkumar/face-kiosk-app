@@ -21,11 +21,20 @@ COPY requirements.txt .
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create a non-root user (HuggingFace requires this)
+RUN useradd -m -u 1000 user
+ENV HOME=/home/user \
+	PATH=/home/user/.local/bin:$PATH
+WORKDIR $HOME/app
+
+# Copy project and chown to the non-root user
+COPY --chown=user . $HOME/app
+
 # Create uploads directory for persistent storage
-RUN mkdir -p /app/uploads
+RUN mkdir -p $HOME/app/uploads && chown -R user $HOME/app/uploads
 
-# Copy project
-COPY . .
+# Switch to the non-root user
+USER user
 
-# Start the application using uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10000"]
+# Start the application using uvicorn on port 7860 (HuggingFace requirement)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
