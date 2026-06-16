@@ -13,6 +13,12 @@ class EmployeeService:
 
     @staticmethod
     def create_employee(db: Session, data):
+        # Check if employee code exists first
+        existing_employee = db.query(Employee).filter(Employee.employee_code == data.employee_code).first()
+        if existing_employee:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail="Employee code already exists")
+
         employee = Employee(
             employee_code=data.employee_code,
             first_name=data.first_name,
@@ -25,7 +31,12 @@ class EmployeeService:
             is_active=True
         )
 
-        created_employee = EmployeeRepository.create(db, employee)
+        try:
+            created_employee = EmployeeRepository.create(db, employee)
+        except Exception as e:
+            db.rollback()
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail="Failed to create employee (Possible duplicate)")
 
         # Auto-create a user account for the employee with default password
         username = data.employee_code.lower()
