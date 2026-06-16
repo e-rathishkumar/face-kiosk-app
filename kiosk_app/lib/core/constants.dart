@@ -24,7 +24,7 @@ class ApiConstants {
   ApiConstants._();
 
   /// Backend URL - matches the FastAPI backend running locally
-  static const String baseUrl = 'http://192.168.37.200:8001';
+  static const String baseUrl = 'https://rathishkumar-07-face-kiosk.hf.space';
 
   // Auth
   static const String login = '/auth/login';
