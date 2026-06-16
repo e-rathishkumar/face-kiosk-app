@@ -1,0 +1,34 @@
+# Node
+node_modules/
+dist/
+build/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+.env
+.pytest_cache/
+
+# Flutter
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Local media / uploads
+uploads/
+*.mp4
+*.MOV
+*.jpg
+*.jpeg
+*.png
+!backend/test_face.jpg

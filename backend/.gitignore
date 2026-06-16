@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+.env
+
+.alembic
+
+.idea/
+.vscode/
+
+postgres_data/
+
+storage/employees/*
+storage/unrecognized/*
+storage/reports/*

@@ -1,0 +1,45 @@
+name: face_kiosk
+description: Face Recognition Kiosk - Employee Attendance System
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Camera & Face Detection
+  camera: ^0.11.0+2
+  google_mlkit_face_detection: ^0.12.0
+
+  # Network
+  dio: ^5.7.0
+
+  # Storage & Security
+  shared_preferences: ^2.3.3
+  flutter_secure_storage: ^9.2.4
+
+  # UI
+  flutter_screenutil: ^5.9.3
+  google_fonts: ^6.2.1
+
+  # TTS
+  flutter_tts: ^4.2.5
+
+  # Utils
+  connectivity_plus: ^6.1.1
+  intl: ^0.19.0
+  path_provider: ^2.1.5
+  battery_plus: ^7.0.0
+  device_info_plus: ^12.4.0
+  disk_space_2: ^1.0.12
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
