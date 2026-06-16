@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     gcc \
     g++ \
+    make \
+    cmake \
+    python3-dev \
     wget \
     unzip \
     && rm -rf /var/lib/apt/lists/*
