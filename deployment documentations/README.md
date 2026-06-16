@@ -37,13 +37,13 @@ Our backend requires a database and a caching layer.
 4. Click **Create Database**.
 5. Once created, copy the **Internal Database URL** (if deploying backend to Render) or the **External Database URL**. 
 
-### Deploy Redis
-Render also offers Redis:
-1. Click **New +** > **Redis**.
+### Deploy Redis (Key Value)
+Render offers Redis under the name "Key Value":
+1. Click **New +** > **Key Value**.
 2. Name it `face-kiosk-redis`.
 3. Choose the **Free** instance type.
-4. Click **Create Redis**.
-5. Copy the **Internal Redis URL**.
+4. Click **Create Key Value**.
+5. Copy the **Internal Redis URL** (it will look like `redis://...`).
 
 *(Note: Render's free PostgreSQL databases expire after 90 days. For persistent usage, consider upgrading the DB or using an external managed DB like Supabase).*
 
