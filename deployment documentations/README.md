@@ -71,7 +71,7 @@ We will deploy the FastAPI backend using Docker.
    - Name: `uploads-disk`
    - Mount Path: `/app/uploads`
    - Size: `1 GB`
-   *(This ensures that profile photos uploaded to `/app/uploads` are not lost when Render restarts the server. This requires a paid instance).*
+   *(Note: This requires a paid instance. **If you are on the FREE plan, SKIP this step entirely.** The only downside is that uploaded profile photos will be wiped when the free server goes to sleep).*
 6. Click **Create Web Service**. Wait for the build to finish. Once live, copy the URL (e.g., `https://face-kiosk-backend.onrender.com`).
 
 ---
