@@ -44,7 +44,7 @@ USER user
 # Download buffalo_sc model from GitHub directly to avoid GDrive quotas
 RUN mkdir -p $HOME/app/models/buffalo_sc && \
     wget -q https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_sc.zip -O /tmp/buffalo_sc.zip && \
-    unzip -q /tmp/buffalo_sc.zip -d $HOME/app/models/buffalo_sc && \
+    unzip -o -q /tmp/buffalo_sc.zip -d $HOME/app/models/buffalo_sc && \
     rm /tmp/buffalo_sc.zip
 
 # Start the application using uvicorn on port 7860 (HuggingFace requirement)
