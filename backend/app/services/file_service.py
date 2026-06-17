@@ -23,3 +23,15 @@ class FileService:
             buffer.write(image_bytes)
 
         return str(filepath)
+
+    @staticmethod
+    def save_face_image(upload_file):
+        import shutil
+        extension = upload_file.filename.split(".")[-1]
+        new_filename = f"{uuid4()}.{extension}"
+        filepath = FileService.FACE_UPLOAD_DIR / new_filename
+
+        with filepath.open("wb") as buffer:
+            shutil.copyfileobj(upload_file.file, buffer)
+
+        return str(filepath)
