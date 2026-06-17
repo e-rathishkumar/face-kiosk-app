@@ -99,7 +99,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                       borderRadius: BorderRadius.circular(18.r),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFf59e0b).withValues(alpha: 0.3),
+                          color: const Color(0xFFf59e0b).withOpacity(0.3),
                           blurRadius: 20,
                           spreadRadius: 2,
                         ),
@@ -115,31 +115,30 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
                   Text(
                     'Reset Your Password',
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.outfit(
                       fontSize: 24.sp,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.bold,
                       color: const Color(0xFF1a1a2e),
                     ),
                   ),
-                  SizedBox(height: 6.h),
+                  SizedBox(height: 8.h),
                   Text(
-                    'For your security, please set a new password\nbefore continuing.',
-                    style: GoogleFonts.poppins(
-                      fontSize: 13.sp,
-                      color: Colors.grey.shade500,
+                    'Create a new password',
+                    style: GoogleFonts.outfit(
+                      fontSize: 14.sp,
+                      color: Colors.grey.shade600,
                     ),
-                    textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 36.h),
+                  SizedBox(height: 32.h),
 
-                  // Current Password
-                  TextField(
+                  // Current Password Field
+                  TextFormField(
                     controller: _currentPasswordController,
                     obscureText: _obscureCurrent,
-                    style: GoogleFonts.poppins(fontSize: 14.sp),
+                    style: GoogleFonts.outfit(fontSize: 14.sp),
                     decoration: InputDecoration(
                       labelText: 'Current Password',
-                      labelStyle: GoogleFonts.poppins(color: Colors.grey.shade500),
+                      labelStyle: GoogleFonts.outfit(color: Colors.grey.shade500),
                       prefixIcon: Icon(Icons.lock_outline, color: Colors.grey.shade400),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -152,14 +151,14 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                   ),
                   SizedBox(height: 16.h),
 
-                  // New Password
-                  TextField(
+                  // New Password Field
+                  TextFormField(
                     controller: _newPasswordController,
                     obscureText: _obscureNew,
-                    style: GoogleFonts.poppins(fontSize: 14.sp),
+                    style: GoogleFonts.outfit(fontSize: 14.sp),
                     decoration: InputDecoration(
                       labelText: 'New Password',
-                      labelStyle: GoogleFonts.poppins(color: Colors.grey.shade500),
+                      labelStyle: GoogleFonts.outfit(color: Colors.grey.shade500),
                       prefixIcon: Icon(Icons.vpn_key_outlined, color: Colors.grey.shade400),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -173,14 +172,14 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                   SizedBox(height: 16.h),
 
                   // Confirm Password
-                  TextField(
+                  TextFormField(
                     controller: _confirmPasswordController,
                     obscureText: _obscureConfirm,
-                    style: GoogleFonts.poppins(fontSize: 14.sp),
-                    onSubmitted: (_) => _submit(),
+                    style: GoogleFonts.outfit(fontSize: 14.sp),
+                    onFieldSubmitted: (_) => _submit(),
                     decoration: InputDecoration(
                       labelText: 'Confirm New Password',
-                      labelStyle: GoogleFonts.poppins(color: Colors.grey.shade500),
+                      labelStyle: GoogleFonts.outfit(color: Colors.grey.shade500),
                       prefixIcon: Icon(Icons.check_circle_outline, color: Colors.grey.shade400),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -209,7 +208,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                           Expanded(
                             child: Text(
                               _errorMessage!,
-                              style: GoogleFonts.poppins(color: Colors.red, fontSize: 12.sp),
+                              style: GoogleFonts.outfit(color: Colors.red, fontSize: 12.sp),
                             ),
                           ),
                         ],
@@ -243,9 +242,9 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                                   ),
                                 )
                               : Text(
-                                  'Set New Password',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 15.sp,
+                                  'Reset Password',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 16.sp,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),

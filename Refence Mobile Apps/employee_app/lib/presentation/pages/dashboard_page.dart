@@ -159,7 +159,7 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
               borderRadius: BorderRadius.circular(16.r),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                  color: AppTheme.primaryColor.withOpacity(0.2),
                   blurRadius: 8.r,
                   offset: Offset(0, 2.h),
                 ),
@@ -234,7 +234,7 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: isCheckedIn
-                  ? [AppTheme.successColor, AppTheme.successColor.withValues(alpha: 0.8)]
+                  ? [AppTheme.successColor, AppTheme.successColor.withOpacity(0.8)]
                   : [AppTheme.primaryColor, AppTheme.primaryDark],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -243,7 +243,7 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
             boxShadow: [
               BoxShadow(
                 color: (isCheckedIn ? AppTheme.successColor : AppTheme.primaryColor)
-                    .withValues(alpha: 0.3),
+                    .withOpacity(0.3),
                 blurRadius: 16.r,
                 offset: Offset(0, 8.h),
               ),
@@ -262,7 +262,7 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20.r),
                     ),
                     child: Text(
@@ -314,9 +314,9 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
                 child: isCheckedOut
                     ? Container(
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
+                          color: Colors.white.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
+                          border: Border.all(color: Colors.white.withOpacity(0.4)),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -426,7 +426,7 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
             border: Border.all(color: AppTheme.dividerColor),
             boxShadow: [
               BoxShadow(
-                color: color.withValues(alpha: 0.06),
+                color: color.withOpacity(0.06),
                 blurRadius: 12.r,
                 offset: Offset(0, 4.h),
               ),
@@ -438,7 +438,7 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
                 width: 36.w,
                 height: 36.w,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
+                  color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10.r),
                 ),
                 child: Center(
@@ -547,7 +547,7 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
                           width: 36.w,
                           height: 36.w,
                           decoration: BoxDecoration(
-                            color: actionColor.withValues(alpha: 0.1),
+                            color: actionColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Icon(
@@ -674,7 +674,7 @@ class _AttendanceDatesPage extends StatelessWidget {
                         width: 40.w,
                         height: 40.w,
                         decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.1),
+                          color: color.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(10.r),
                         ),
                         child: Icon(
@@ -782,7 +782,7 @@ class _KioskLogTimePage extends StatelessWidget {
                       width: 40.w,
                       height: 40.w,
                       decoration: BoxDecoration(
-                        color: actionColor.withValues(alpha: 0.1),
+                        color: actionColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                       child: Icon(

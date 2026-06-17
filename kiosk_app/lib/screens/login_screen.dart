@@ -106,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   borderRadius: BorderRadius.circular(20.r),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF4F46E5).withValues(alpha: 0.4),
+                      color: const Color(0xFF4F46E5).withOpacity(0.4),
                       blurRadius: 24,
                       spreadRadius: 4,
                     ),
@@ -117,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
               SizedBox(height: 32.h),
               Text(
                 'Face Recognition Kiosk',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.outfit(
                   fontSize: 26.sp,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -127,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
               SizedBox(height: 8.h),
               Text(
                 'Sign in to start attendance tracking',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.outfit(
                   fontSize: 14.sp,
                   color: Colors.white54,
                 ),
@@ -137,20 +137,20 @@ class _LoginScreenState extends State<LoginScreen> {
               // Username field
               TextField(
                 controller: _usernameController,
-                style: GoogleFonts.poppins(color: Colors.white, fontSize: 14.sp),
+                style: GoogleFonts.outfit(color: Colors.white, fontSize: 14.sp),
                 decoration: InputDecoration(
                   labelText: 'Username',
-                  labelStyle: GoogleFonts.poppins(color: Colors.white38),
+                  labelStyle: GoogleFonts.outfit(color: Colors.white38),
                   prefixIcon: const Icon(Icons.person_outline, color: Colors.white38),
                   filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.06),
+                  fillColor: Colors.white.withOpacity(0.06),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.r),
-                    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.r),
-                    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.r),
@@ -163,12 +163,12 @@ class _LoginScreenState extends State<LoginScreen> {
               // Password field
               TextField(
                 controller: _passwordController,
-                style: GoogleFonts.poppins(color: Colors.white, fontSize: 14.sp),
+                style: GoogleFonts.outfit(color: Colors.white, fontSize: 14.sp),
                 obscureText: _obscurePassword,
                 onSubmitted: (_) => _login(),
                 decoration: InputDecoration(
                   labelText: 'Password',
-                  labelStyle: GoogleFonts.poppins(color: Colors.white38),
+                  labelStyle: GoogleFonts.outfit(color: Colors.white38),
                   prefixIcon: const Icon(Icons.lock_outlined, color: Colors.white38),
                   suffixIcon: IconButton(
                     icon: Icon(
@@ -178,14 +178,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                   ),
                   filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.06),
+                  fillColor: Colors.white.withOpacity(0.06),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.r),
-                    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.r),
-                    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.r),
@@ -200,9 +200,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                   decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.1),
+                    color: Colors.red.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8.r),
-                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                    border: Border.all(color: Colors.red.withOpacity(0.3)),
                   ),
                   child: Row(
                     children: [
@@ -211,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Expanded(
                         child: Text(
                           _errorMessage!,
-                          style: GoogleFonts.poppins(color: Colors.red, fontSize: 12.sp),
+                          style: GoogleFonts.outfit(color: Colors.red, fontSize: 12.sp),
                         ),
                       ),
                     ],
@@ -244,7 +244,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         )
                       : Text(
                           'Sign In',
-                          style: GoogleFonts.poppins(
+                          style: GoogleFonts.outfit(
                             fontSize: 16.sp,
                             fontWeight: FontWeight.w600,
                           ),

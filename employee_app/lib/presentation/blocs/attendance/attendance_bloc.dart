@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/entities/attendance_record.dart';
+import '../../../domain/entities/activity_record.dart';
 import '../../../domain/repositories/attendance_repository.dart';
 import 'attendance_event.dart';
 import 'attendance_state.dart';
@@ -123,27 +124,39 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
     AttendanceDashboardRequested event,
     Emitter<AttendanceState> emit,
   ) async {
-    final result = await _attendanceRepository.getDashboard(event.employeeId);
+    final dashboardResult = await _attendanceRepository.getDashboard(event.employeeId);
+    final activitiesResult = await _attendanceRepository.getActivities(event.employeeId);
     
-    result.fold(
-      (error) {
-        if (state is AttendanceLoaded) {
-          // Keep current state if dashboard fetch fails
-        } else {
-          emit(AttendanceError(message: error));
-        }
-      },
-      (data) {
-        if (state is AttendanceLoaded) {
-          emit((state as AttendanceLoaded).copyWith(dashboardData: data));
-        } else {
-          emit(AttendanceLoaded(
-            records: const [],
-            dashboardData: data,
-          ));
-        }
-      },
+    Map<String, dynamic>? newDashboardData;
+    List<ActivityRecord>? newActivities;
+
+    dashboardResult.fold(
+      (error) {},
+      (data) { newDashboardData = data; }
     );
+
+    activitiesResult.fold(
+      (error) {},
+      (data) { newActivities = data; }
+    );
+
+    if (state is AttendanceLoaded) {
+      final current = state as AttendanceLoaded;
+      emit(current.copyWith(
+        dashboardData: newDashboardData ?? current.dashboardData,
+        activities: newActivities ?? current.activities,
+      ));
+    } else {
+      if (newDashboardData != null || newActivities != null) {
+        emit(AttendanceLoaded(
+          records: const [],
+          dashboardData: newDashboardData,
+          activities: newActivities ?? const [],
+        ));
+      } else {
+        emit(const AttendanceError(message: 'Failed to load dashboard data'));
+      }
+    }
   }
 
   void _onReset(

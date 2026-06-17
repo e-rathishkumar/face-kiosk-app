@@ -80,7 +80,7 @@ class _UpdatePasswordPageState extends State<UpdatePasswordPage> {
                     borderRadius: BorderRadius.circular(24.r),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                        color: AppTheme.primaryColor.withOpacity(0.3),
                         blurRadius: 24.r,
                         offset: Offset(0, 12.h),
                       ),

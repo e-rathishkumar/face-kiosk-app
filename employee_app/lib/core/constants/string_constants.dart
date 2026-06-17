@@ -2,7 +2,7 @@ class Strings {
   Strings._();
 
   // Common
-  static const String appName = 'AttendAI';
+  static const String appName = 'Logs';
   static const String ok = 'OK';
   static const String cancel = 'Cancel';
   static const String save = 'Save';

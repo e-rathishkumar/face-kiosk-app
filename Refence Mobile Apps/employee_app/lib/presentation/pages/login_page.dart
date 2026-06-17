@@ -76,7 +76,7 @@ class _LoginPageContent extends StatelessWidget {
                         borderRadius: BorderRadius.circular(24.r),
                         boxShadow: [
                           BoxShadow(
-                            color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                            color: AppTheme.primaryColor.withOpacity(0.3),
                             blurRadius: 24.r,
                             offset: Offset(0, 12.h),
                           ),
@@ -115,7 +115,7 @@ class _LoginPageContent extends StatelessWidget {
             builder: (context, state) {
               if (state is AuthLoading) {
                 return Container(
-                  color: Colors.black.withValues(alpha: 0.6),
+                  color: Colors.black.withOpacity(0.6),
                   child: const Center(
                     child: CircularProgressIndicator(
                       color: Colors.white,

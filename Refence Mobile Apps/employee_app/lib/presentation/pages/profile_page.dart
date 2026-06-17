@@ -134,7 +134,7 @@ class ProfilePage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20.r),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                      color: AppTheme.primaryColor.withOpacity(0.3),
                       blurRadius: 20.r,
                       offset: Offset(0, 8.h),
                     ),
@@ -150,7 +150,7 @@ class ProfilePage extends StatelessWidget {
                             padding: EdgeInsets.all(3.w),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
+                              border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
                             ),
                             child: Hero(
                               tag: 'profile_photo',
@@ -158,7 +158,7 @@ class ProfilePage extends StatelessWidget {
                                 child: Container(
                                   width: 80.r,
                                   height: 80.r,
-                                  color: Colors.white.withValues(alpha: 0.2),
+                                  color: Colors.white.withOpacity(0.2),
                                   child: imageUrl != null
                                       ? Image.network(
                                           imageUrl,
@@ -204,7 +204,7 @@ class ProfilePage extends StatelessWidget {
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.2),
+                                    color: Colors.black.withOpacity(0.2),
                                     blurRadius: 4.r,
                                   ),
                                 ],
@@ -230,13 +230,13 @@ class ProfilePage extends StatelessWidget {
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
+                        color: Colors.white.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(20.r),
                       ),
                       child: Text(
                         user?.designation ?? '',
                         style: AppTypography.labelSmall.copyWith(
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: Colors.white.withOpacity(0.9),
                         ),
                       ),
                     ),
@@ -254,7 +254,7 @@ class ProfilePage extends StatelessWidget {
                   border: Border.all(color: AppTheme.dividerColor),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
+                      color: Colors.black.withOpacity(0.03),
                       blurRadius: 8.r,
                       offset: Offset(0, 2.h),
                     ),
@@ -378,7 +378,7 @@ class ProfilePage extends StatelessWidget {
             width: 36.w,
             height: 36.w,
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.08),
+              color: AppTheme.primaryColor.withOpacity(0.08),
               borderRadius: BorderRadius.circular(10.r),
             ),
             child: Icon(icon, size: 18.sp, color: AppTheme.primaryColor),

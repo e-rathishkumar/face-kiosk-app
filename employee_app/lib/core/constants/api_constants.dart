@@ -26,6 +26,8 @@ class ApiConstants {
 
   // Dashboard
   static const String dashboardSummary = '/dashboard/summary';
+  static String employeeDashboard(String id) => '/dashboard/employee/$id';
+  static String employeeActivities(String id) => '/dashboard/employee/$id/activities';
 
   // Timeouts
   static const Duration connectTimeout = Duration(seconds: 60);

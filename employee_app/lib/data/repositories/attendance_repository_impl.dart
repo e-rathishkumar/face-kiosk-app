@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
 
 import '../../domain/entities/attendance_record.dart';
+import '../../domain/entities/activity_record.dart';
 import '../../domain/repositories/attendance_repository.dart';
 import '../datasources/remote/api_client.dart';
 
@@ -111,13 +112,29 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   @override
   Future<Either<String, Map<String, dynamic>>> getDashboard(String employeeId) async {
     try {
-      final response = await _apiClient.getDashboardSummary();
+      final response = await _apiClient.getEmployeeDashboard(employeeId);
       return Right(response);
     } on DioException catch (e) {
       return Left(
           e.response?.data?['detail']?.toString() ?? 'Failed to load dashboard');
     } catch (e) {
       return Left('Failed to load dashboard');
+    }
+  }
+
+  @override
+  Future<Either<String, List<ActivityRecord>>> getActivities(String employeeId) async {
+    try {
+      final response = await _apiClient.getEmployeeActivities(employeeId);
+      final records = response
+          .map((json) => ActivityRecord.fromJson(json as Map<String, dynamic>))
+          .toList();
+      return Right(records);
+    } on DioException catch (e) {
+      return Left(
+          e.response?.data?['detail']?.toString() ?? 'Failed to load activities');
+    } catch (e) {
+      return Left('Failed to load activities');
     }
   }
 }

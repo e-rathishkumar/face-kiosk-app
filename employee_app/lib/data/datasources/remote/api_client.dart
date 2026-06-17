@@ -122,4 +122,14 @@ class ApiClient {
     final response = await _dio.get(ApiConstants.dashboardSummary);
     return response.data as Map<String, dynamic>;
   }
+
+  Future<Map<String, dynamic>> getEmployeeDashboard(String employeeId) async {
+    final response = await _dio.get(ApiConstants.employeeDashboard(employeeId));
+    return response.data as Map<String, dynamic>;
+  }
+
+  Future<List<dynamic>> getEmployeeActivities(String employeeId) async {
+    final response = await _dio.get(ApiConstants.employeeActivities(employeeId));
+    return response.data as List<dynamic>;
+  }
 }

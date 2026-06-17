@@ -7,11 +7,13 @@ import '../../core/constants/string_constants.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_typography.dart';
 import '../../domain/entities/attendance_record.dart';
+import '../../domain/entities/activity_record.dart';
 import '../blocs/attendance/attendance_bloc.dart';
 import '../blocs/attendance/attendance_event.dart';
 import '../blocs/attendance/attendance_state.dart';
 import '../blocs/auth/auth_bloc.dart';
 import '../blocs/auth/auth_state.dart';
+import 'recent_activities_screen.dart';
 
 class DashboardPage extends StatelessWidget {
   final VoidCallback onNavigateToProfile;
@@ -75,7 +77,7 @@ class DashboardPage extends StatelessWidget {
           Container(
             padding: EdgeInsets.all(8.w),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.1),
+              color: AppTheme.primaryColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12.r),
             ),
             child: Icon(
@@ -179,7 +181,7 @@ class DashboardPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(24.r),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                color: AppTheme.primaryColor.withOpacity(0.3),
                 blurRadius: 20.r,
                 offset: Offset(0, 10.h),
               ),
@@ -194,13 +196,13 @@ class DashboardPage extends StatelessWidget {
                   Text(
                     Strings.todayStatus,
                     style: AppTypography.bodyMedium.copyWith(
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: Colors.white.withOpacity(0.8),
                     ),
                   ),
                   Text(
                     DateFormat('MMM dd, yyyy').format(DateTime.now()),
                     style: AppTypography.bodySmall.copyWith(
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: Colors.white.withOpacity(0.8),
                     ),
                   ),
                 ],
@@ -219,7 +221,7 @@ class DashboardPage extends StatelessWidget {
                   Container(
                     width: 1,
                     height: 40.h,
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: Colors.white.withOpacity(0.2),
                   ),
                   Expanded(
                     child: _buildTimeWidget(
@@ -231,8 +233,26 @@ class DashboardPage extends StatelessWidget {
                   ),
                 ],
               ),
-              // SizedBox(height: 24.h),
-              // _buildActionButtons(context, record, isLoading),
+              SizedBox(height: 24.h),
+              Center(
+                child: Builder(
+                  builder: (context) {
+                    final dashData = state is AttendanceLoaded ? state.dashboardData : null;
+                    final totalHours = dashData?['total_hours_today'] ?? 0.0;
+                    return Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      child: Text(
+                        'Total Hours: ${totalHours.toStringAsFixed(1)} hrs',
+                        style: AppTypography.labelLarge.copyWith(color: Colors.white),
+                      ),
+                    );
+                  }
+                ),
+              ),
             ],
           ),
         );
@@ -261,7 +281,7 @@ class DashboardPage extends StatelessWidget {
         Text(
           label,
           style: AppTypography.caption.copyWith(
-            color: Colors.white.withValues(alpha: 0.7),
+            color: Colors.white.withOpacity(0.7),
           ),
         ),
       ],
@@ -287,6 +307,65 @@ class DashboardPage extends StatelessWidget {
             final absent = dashData?['absent_today'] ?? 2;
             final late = dashData?['late_today'] ?? 1;
 
+            void showDatesBottomSheet(String title, List<dynamic> dates) {
+              showModalBottomSheet(
+                context: context,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+                ),
+                builder: (context) {
+                  return Container(
+                    padding: EdgeInsets.all(24.w),
+                    decoration: BoxDecoration(
+                      color: AppTheme.backgroundColor,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '$title Dates',
+                          style: AppTypography.h3.copyWith(color: AppTheme.textPrimary),
+                        ),
+                        SizedBox(height: 16.h),
+                        if (dates.isEmpty)
+                          Text(
+                            'No dates found',
+                            style: AppTypography.bodyMedium.copyWith(color: AppTheme.textSecondary),
+                          )
+                        else
+                          Expanded(
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: dates.length,
+                              separatorBuilder: (_, __) => SizedBox(height: 8.h),
+                              itemBuilder: (context, index) {
+                                return Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    border: Border.all(color: AppTheme.dividerColor),
+                                  ),
+                                  child: Text(
+                                    dates[index].toString(),
+                                    style: AppTypography.bodyMedium.copyWith(
+                                      color: AppTheme.textPrimary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            }
+
             return Row(
               children: [
                 Expanded(
@@ -295,6 +374,7 @@ class DashboardPage extends StatelessWidget {
                     value: present.toString(),
                     icon: Icons.check_circle_outline,
                     color: AppTheme.successColor,
+                    onTap: () => showDatesBottomSheet(Strings.present, dashData?['present_dates'] ?? []),
                   ),
                 ),
                 SizedBox(width: 12.w),
@@ -302,8 +382,9 @@ class DashboardPage extends StatelessWidget {
                   child: _buildSummaryCard(
                     title: Strings.absent,
                     value: absent.toString(),
-                    icon: Icons.cancel_outlined,
+                    icon: Icons.event_busy,
                     color: AppTheme.errorColor,
+                    onTap: () => showDatesBottomSheet(Strings.absent, dashData?['absent_dates'] ?? []),
                   ),
                 ),
                 SizedBox(width: 12.w),
@@ -313,6 +394,7 @@ class DashboardPage extends StatelessWidget {
                     value: late.toString(),
                     icon: Icons.access_time,
                     color: AppTheme.warningColor,
+                    onTap: () => showDatesBottomSheet(Strings.late, dashData?['late_dates'] ?? []),
                   ),
                 ),
               ],
@@ -328,8 +410,11 @@ class DashboardPage extends StatelessWidget {
     required String value,
     required IconData icon,
     required Color color,
+    VoidCallback? onTap,
   }) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -343,7 +428,7 @@ class DashboardPage extends StatelessWidget {
           Container(
             padding: EdgeInsets.all(8.w),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8.r),
             ),
             child: Icon(icon, color: color, size: 20.sp),
@@ -363,6 +448,7 @@ class DashboardPage extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -378,7 +464,12 @@ class DashboardPage extends StatelessWidget {
               style: AppTypography.h4.copyWith(color: AppTheme.textPrimary),
             ),
             TextButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RecentActivitiesScreen()),
+                );
+              },
               child: Text(
                 Strings.viewAll,
                 style: AppTypography.buttonSmall.copyWith(
@@ -396,13 +487,13 @@ class DashboardPage extends StatelessWidget {
             }
 
             if (state is AttendanceLoaded) {
-              final records = state.records.take(5).toList();
-              if (records.isEmpty) {
+              final activities = state.activities.take(3).toList();
+              if (activities.isEmpty) {
                 return Center(
                   child: Padding(
                     padding: EdgeInsets.all(24.w),
                     child: Text(
-                      Strings.noAttendanceRecords,
+                      'No recent activities',
                       style: AppTypography.bodyMedium.copyWith(
                         color: AppTheme.textTertiary,
                       ),
@@ -411,15 +502,18 @@ class DashboardPage extends StatelessWidget {
                 );
               }
 
-              return ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: records.length,
-                separatorBuilder: (context, index) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final record = records[index];
-                  return _buildActivityItem(record);
-                },
+              return Padding(
+                padding: EdgeInsets.only(bottom: 28.h),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: activities.length,
+                  separatorBuilder: (context, index) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final activity = activities[index];
+                    return _buildActivityItem(activity);
+                  },
+                ),
               );
             }
 
@@ -430,24 +524,41 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildActivityItem(AttendanceRecord record) {
-    final dateStr = record.checkIn != null 
-        ? DateFormat('MMM dd, yyyy').format(record.checkIn!)
-        : 'Unknown Date';
-        
+  Widget _buildActivityItem(ActivityRecord activity) {
+    final dateStr = DateFormat('MMM dd, yyyy').format(activity.timestamp);
+    final timeStr = DateFormat('hh:mm a').format(activity.timestamp);
+
+    IconData iconData;
+    Color iconColor;
+    String subtitleText;
+
+    if (activity.type == 'CHECK_IN') {
+      iconData = Icons.login;
+      iconColor = AppTheme.successColor;
+      subtitleText = 'Check In at $timeStr';
+    } else if (activity.type == 'CHECK_OUT') {
+      iconData = Icons.logout;
+      iconColor = AppTheme.warningColor;
+      subtitleText = 'Check Out at $timeStr';
+    } else {
+      iconData = Icons.face_retouching_natural;
+      iconColor = AppTheme.primaryColor;
+      subtitleText = 'Detected at $timeStr';
+    }
+
     return ListTile(
       contentPadding: EdgeInsets.symmetric(horizontal: 0, vertical: 8.h),
       leading: Container(
         width: 48.w,
         height: 48.w,
         decoration: BoxDecoration(
-          color: AppTheme.primaryColor.withValues(alpha: 0.1),
+          color: iconColor.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12.r),
         ),
         child: Center(
           child: Icon(
-            Icons.history,
-            color: AppTheme.primaryColor,
+            iconData,
+            color: iconColor,
             size: 24.sp,
           ),
         ),
@@ -458,40 +569,31 @@ class DashboardPage extends StatelessWidget {
       ),
       subtitle: Padding(
         padding: EdgeInsets.only(top: 4.h),
-        child: Row(
-          children: [
-            Icon(Icons.login, size: 14.sp, color: AppTheme.successColor),
-            SizedBox(width: 4.w),
-            Text(
-              record.checkIn != null ? DateFormat('hh:mm a').format(record.checkIn!) : '--:--',
-              style: AppTypography.caption,
-            ),
-            SizedBox(width: 12.w),
-            Icon(Icons.logout, size: 14.sp, color: AppTheme.warningColor),
-            SizedBox(width: 4.w),
-            Text(
-              record.checkOut != null ? DateFormat('hh:mm a').format(record.checkOut!) : '--:--',
-              style: AppTypography.caption,
-            ),
-          ],
-        ),
-      ),
-      trailing: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-        decoration: BoxDecoration(
-          color: record.status == 'PRESENT' 
-              ? AppTheme.successColor.withValues(alpha: 0.1)
-              : AppTheme.warningColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20.r),
-        ),
         child: Text(
-          record.status ?? 'Present',
-          style: AppTypography.labelSmall.copyWith(
-            color: record.status == 'PRESENT' ? AppTheme.successColor : AppTheme.warningColor,
-            fontWeight: FontWeight.w600,
-          ),
+          subtitleText,
+          style: AppTypography.caption,
         ),
       ),
+      trailing: activity.status != null
+          ? Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+              decoration: BoxDecoration(
+                color: activity.status == 'ACTIVE' || activity.status == 'PRESENT'
+                    ? AppTheme.successColor.withOpacity(0.1)
+                    : AppTheme.warningColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20.r),
+              ),
+              child: Text(
+                activity.status!,
+                style: AppTypography.labelSmall.copyWith(
+                  color: activity.status == 'ACTIVE' || activity.status == 'PRESENT'
+                      ? AppTheme.successColor
+                      : AppTheme.warningColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            )
+          : null,
     );
   }
 }

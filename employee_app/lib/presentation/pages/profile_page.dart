@@ -79,7 +79,7 @@ class ProfilePage extends StatelessWidget {
                         border: Border.all(color: Colors.white, width: 3),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
+                            color: Colors.black.withOpacity(0.2),
                             blurRadius: 10.r,
                             offset: Offset(0, 5.h),
                           ),
@@ -109,7 +109,7 @@ class ProfilePage extends StatelessWidget {
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                       child: Text(
@@ -203,7 +203,7 @@ class ProfilePage extends StatelessWidget {
           Container(
             padding: EdgeInsets.all(8.w),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.1),
+              color: AppTheme.primaryColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8.r),
             ),
             child: Icon(icon, color: AppTheme.primaryColor, size: 20.sp),
@@ -279,7 +279,7 @@ class ProfilePage extends StatelessWidget {
       leading: Container(
         padding: EdgeInsets.all(8.w),
         decoration: BoxDecoration(
-          color: AppTheme.secondaryColor.withValues(alpha: 0.1),
+          color: AppTheme.secondaryColor.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8.r),
         ),
         child: Icon(icon, color: AppTheme.secondaryColor, size: 20.sp),

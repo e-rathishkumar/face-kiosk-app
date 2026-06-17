@@ -529,8 +529,8 @@ class _FaceCapturePageState extends State<FaceCapturePage>
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: _faceDetected
-                            ? AppTheme.successColor.withValues(alpha: 0.3)
-                            : AppTheme.primaryColor.withValues(alpha: 0.2),
+                            ? AppTheme.successColor.withOpacity(0.3)
+                            : AppTheme.primaryColor.withOpacity(0.2),
                         width: 2,
                       ),
                     ),
@@ -583,7 +583,7 @@ class _FaceCapturePageState extends State<FaceCapturePage>
                     borderRadius: BorderRadius.circular(16.r),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
+                        color: Colors.black.withOpacity(0.2),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -613,7 +613,7 @@ class _FaceCapturePageState extends State<FaceCapturePage>
                 padding:
                     EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.65),
+                  color: Colors.black.withOpacity(0.65),
                   borderRadius: BorderRadius.circular(12.r),
                 ),
                 child: Text(
@@ -653,7 +653,7 @@ class _FaceCapturePageState extends State<FaceCapturePage>
                 height: 64.w,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.green.withValues(alpha: 0.85),
+                  color: Colors.green.withOpacity(0.85),
                 ),
                 child: Icon(Icons.check, color: Colors.white, size: 40.sp),
               ),

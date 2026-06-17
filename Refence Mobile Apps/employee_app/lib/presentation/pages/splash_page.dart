@@ -88,7 +88,7 @@ class _SplashPageState extends State<SplashPage> {
                   borderRadius: BorderRadius.circular(28.r),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
+                      color: Colors.black.withOpacity(0.15),
                       blurRadius: 30.r,
                       offset: Offset(0, 12.h),
                     ),
@@ -113,7 +113,7 @@ class _SplashPageState extends State<SplashPage> {
               Text(
                 'AI-Powered Attendance',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: Colors.white.withOpacity(0.6),
                   letterSpacing: 0.5,
                 ),
               ),

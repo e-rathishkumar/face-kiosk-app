@@ -991,7 +991,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                     child: Container(
                       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                       decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.85),
+                        color: color.withOpacity(0.85),
                         borderRadius: BorderRadius.circular(4.r),
                       ),
                       child: Text(
@@ -1029,7 +1029,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           boxShadow: [
-            BoxShadow(color: fallbackGlowColor.withValues(alpha: 0.4), blurRadius: 30, spreadRadius: 5),
+            BoxShadow(color: fallbackGlowColor.withOpacity(0.4), blurRadius: 30, spreadRadius: 5),
           ],
         ),
         child: ClipOval(
@@ -1061,7 +1061,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
       width: s, height: s,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        boxShadow: [BoxShadow(color: glowColor.withValues(alpha: 0.4), blurRadius: 30, spreadRadius: 5)],
+        boxShadow: [BoxShadow(color: glowColor.withOpacity(0.4), blurRadius: 30, spreadRadius: 5)],
       ),
       child: ClipOval(
         child: Image.network(
@@ -1081,13 +1081,13 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(colors: colors),
-        boxShadow: [BoxShadow(color: glowColor.withValues(alpha: 0.4), blurRadius: 30, spreadRadius: 5)],
+        boxShadow: [BoxShadow(color: glowColor.withOpacity(0.4), blurRadius: 30, spreadRadius: 5)],
       ),
       child: Stack(
         alignment: Alignment.center,
         children: [
           if (initial.isNotEmpty)
-            Text(initial, style: GoogleFonts.poppins(fontSize: (s * 0.35).sp, fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.4))),
+            Text(initial, style: GoogleFonts.poppins(fontSize: (s * 0.35).sp, fontWeight: FontWeight.w700, color: Colors.white.withOpacity(0.4))),
           SizedBox(width: s * 0.5, height: s * 0.5, child: const CircularProgressIndicator(color: Colors.white70, strokeWidth: 3)),
         ],
       ),
@@ -1105,7 +1105,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(colors: genderColors),
-        boxShadow: [BoxShadow(color: glowColor.withValues(alpha: 0.4), blurRadius: 30, spreadRadius: 5)],
+        boxShadow: [BoxShadow(color: glowColor.withOpacity(0.4), blurRadius: 30, spreadRadius: 5)],
       ),
       child: ClipOval(
         child: Image.network(
@@ -1144,7 +1144,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
+            color: Colors.white.withOpacity(0.15),
             borderRadius: BorderRadius.circular(20.r),
             border: Border.all(color: Colors.white24),
           ),
@@ -1172,9 +1172,9 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                const Color(0xFF1A1A2E).withValues(alpha: 0.95),
-                const Color(0xFF16213E).withValues(alpha: 0.95),
-                const Color(0xFF0F3460).withValues(alpha: 0.95),
+                const Color(0xFF1A1A2E).withOpacity(0.95),
+                const Color(0xFF16213E).withOpacity(0.95),
+                const Color(0xFF0F3460).withOpacity(0.95),
               ],
             ),
           ),
@@ -1211,7 +1211,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.1),
+                      color: Colors.white.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(30.r),
                       border: Border.all(color: Colors.white24),
                     ),
@@ -1248,8 +1248,8 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                const Color(0xFF1A1A2E).withValues(alpha: 0.95),
-                const Color(0xFF0D253F).withValues(alpha: 0.95),
+                const Color(0xFF1A1A2E).withOpacity(0.95),
+                const Color(0xFF0D253F).withOpacity(0.95),
               ],
             ),
           ),
@@ -1331,8 +1331,8 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                const Color(0xFF1A1A2E).withValues(alpha: 0.95),
-                const Color(0xFF1B2838).withValues(alpha: 0.95),
+                const Color(0xFF1A1A2E).withOpacity(0.95),
+                const Color(0xFF1B2838).withOpacity(0.95),
               ],
             ),
           ),
@@ -1413,7 +1413,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
+            colors: [Colors.black.withOpacity(0.8), Colors.transparent],
           ),
         ),
         child: Row(
@@ -1459,7 +1459,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
           gradient: LinearGradient(
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
-            colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
+            colors: [Colors.black.withOpacity(0.8), Colors.transparent],
           ),
         ),
         child: Column(

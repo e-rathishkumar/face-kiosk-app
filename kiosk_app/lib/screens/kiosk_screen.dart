@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:camera/camera.dart';
+import '../core/image_converter.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -42,12 +45,11 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
   String _employeeName = '';
   String _kioskId = '';
 
-  Timer? _detectionTimer;
   Timer? _returnTimer;
   bool _isProcessing = false;
 
   // MLKit Face Detection
-  
+
   // Interactive mode state
   String? _interactiveEmployeeId;
   String? _interactiveName;
@@ -81,13 +83,14 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('kiosk_token') ?? '';
     _kioskId = prefs.getString('kiosk_id') ?? '';
-    
+
     // Auto-recover kiosk_id from token if they haven't logged out since the update
     if (_kioskId.isEmpty && token.isNotEmpty) {
       try {
         final parts = token.split('.');
         if (parts.length == 3) {
-          final payload = utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
+          final payload =
+              utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
           final Map<String, dynamic> data = json.decode(payload);
           _kioskId = data['sub'] ?? '';
           if (_kioskId.isNotEmpty) {
@@ -96,7 +99,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
         }
       } catch (_) {}
     }
-    
+
     // Final fallback to a valid UUID to prevent 500/422 DB crashes
     if (_kioskId == 'default-kiosk' || _kioskId.isEmpty) {
       _kioskId = '00000000-0000-0000-0000-000000000000';
@@ -131,9 +134,9 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
 
     _cameraController = CameraController(
       frontCamera,
-      ResolutionPreset.medium,
+      ResolutionPreset.high,
       enableAudio: false,
-      imageFormatGroup: ImageFormatGroup.jpeg,
+      imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
     );
 
     try {
@@ -149,85 +152,187 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
   }
 
   void _startDetection() {
-    _detectionTimer?.cancel();
-    _detectionTimer = Timer.periodic(
-      const Duration(milliseconds: AppConstants.detectionIntervalMs),
-      (_) => _captureAndRecognize(),
-    );
+    if (_cameraController?.value.isStreamingImages == true) return;
+    _cameraController?.startImageStream((CameraImage image) {
+      if (!_isProcessing) {
+        _processCameraImage(image);
+      }
+    });
   }
 
   void _stopDetection() {
-    _detectionTimer?.cancel();
-    _detectionTimer = null;
+    if (_cameraController?.value.isStreamingImages == true) {
+      _cameraController?.stopImageStream();
+    }
   }
 
-  Future<void> _captureAndRecognize() async {
+  bool _isUploading = false;
+  bool _faceInViewRecognized = false;
+
+  Future<void> _processCameraImage(CameraImage image) async {
     if (_isProcessing) return;
-    if (_cameraController == null || !_cameraController!.value.isInitialized)
+    if (_state != KioskState.detection && 
+        _state != KioskState.checkoutMode && 
+        _state != KioskState.recognizing) {
       return;
-    if (_state != KioskState.detection && _state != KioskState.checkoutMode)
-      return;
+    }
 
     _isProcessing = true;
 
     try {
-      final XFile image = await _cameraController!.takePicture();
-      
-      // Run local MLKit Face Detection on the captured image
-      final InputImage inputImage = InputImage.fromFilePath(image.path);
+      final Size imageSize =
+          Size(image.width.toDouble(), image.height.toDouble());
+      final InputImageRotation imageRotation =
+          InputImageRotationValue.fromRawValue(
+                  _cameraController!.description.sensorOrientation) ??
+              InputImageRotation.rotation0deg;
+
+      final InputImageFormat inputImageFormat =
+          InputImageFormatValue.fromRawValue(image.format.raw) ??
+              InputImageFormat.nv21;
+
+      final metadata = InputImageMetadata(
+        size: imageSize,
+        rotation: imageRotation,
+        format: inputImageFormat,
+        bytesPerRow: image.planes[0].bytesPerRow,
+      );
+
+      Uint8List imageBytes;
+      if (image.planes.length == 1) {
+        imageBytes = image.planes[0].bytes;
+      } else {
+        final WriteBuffer allBytes = WriteBuffer();
+        for (final Plane plane in image.planes) {
+          allBytes.putUint8List(plane.bytes);
+        }
+        imageBytes = allBytes.done().buffer.asUint8List();
+      }
+
+      final inputImage = InputImage.fromBytes(bytes: imageBytes, metadata: metadata);
       final List<Face> faces = await _faceDetector.processImage(inputImage);
 
       if (faces.isEmpty) {
-        // No faces detected locally, skip hitting the API!
-        setState(() {
-          _detectedFace = null;
-          _recognizedText = null;
-          _state = _state == KioskState.checkoutMode ? KioskState.checkoutMode : KioskState.detection;
-          if (_state != KioskState.checkoutMode) {
-             _statusText = 'Scanning for faces...';
-          }
-        });
+        if (mounted) {
+          setState(() {
+            _detectedFace = null;
+            _recognizedText = null;
+            _faceInViewRecognized = false;
+            
+            // Instantly abort recognition UI and go back to scanning
+            _state = _state == KioskState.checkoutMode
+                ? KioskState.checkoutMode
+                : KioskState.detection;
+            if (_state != KioskState.checkoutMode) {
+              _statusText = 'Scanning for faces...';
+            }
+          });
+        }
+        
+        // If we were uploading, mark it false so the background result is ignored
+        // or a new upload can start immediately if someone else steps in!
+        _isUploading = false; 
         _isProcessing = false;
         return;
       }
 
       final face = faces.first;
-      final Uint8List imageBytes = await image.readAsBytes();
-      final decodedImage = await decodeImageFromList(imageBytes);
       
-      // Update UI to show bounding box while recognizing
-      setState(() {
-        _detectedFace = face;
-        _imageSize = Size(decodedImage.width.toDouble(), decodedImage.height.toDouble());
-        _imageRotation = InputImageRotationValue.fromRawValue(_cameraController!.description.sensorOrientation);
-        _boxColor = Colors.transparent; // Remove the yellow square
-        _recognizedText = null;
-        
-        _state = _state == KioskState.checkoutMode
-            ? KioskState.checkoutMode
-            : KioskState.recognizing;
-        if (_state != KioskState.checkoutMode) {
-          _statusText = 'Recognizing face...';
-        }
-      });
+      if (mounted) {
+        setState(() {
+          _detectedFace = face;
+          
+          bool shouldSwap = Platform.isAndroid && 
+                            (imageRotation == InputImageRotation.rotation90deg ||
+                             imageRotation == InputImageRotation.rotation270deg);
+          
+          _imageSize = Size(
+            shouldSwap ? imageSize.height : imageSize.width,
+            shouldSwap ? imageSize.width : imageSize.height,
+          );
+          
+          _imageRotation = imageRotation;
+          
+          if (!_isUploading && !_faceInViewRecognized) {
+            _boxColor = Colors.transparent;
+            _recognizedText = null;
+          }
+        });
+      }
 
-      // Hit the API with the image bytes
+      // Only start a new upload if we aren't currently uploading AND we haven't already recognized this face
+      if (!_isUploading && !_faceInViewRecognized) {
+        _isUploading = true;
+        
+        // Deep copy the planes to release the camera buffer immediately!
+        final List<Uint8List> copiedPlanes = image.planes.map((p) => Uint8List.fromList(p.bytes)).toList();
+        final List<int> bytesPerRow = image.planes.map((p) => p.bytesPerRow).toList();
+        final List<int?> bytesPerPixel = image.planes.map((p) => p.bytesPerPixel).toList();
+
+        _uploadFaceInBackground(
+            copiedPlanes, bytesPerRow, bytesPerPixel, 
+            image.width, image.height, image.format.group, 
+            face, imageSize, imageRotation);
+      }
+    } catch (e) {
+      debugPrint('[MLKit] Error processing frame: $e');
+    } finally {
+      _isProcessing = false;
+    }
+  }
+  
+
+  Future<void> _uploadFaceInBackground(
+      List<Uint8List> planes, List<int> bytesPerRow, List<int?> bytesPerPixel,
+      int width, int height, ImageFormatGroup formatGroup,
+      Face face, Size imageSize, InputImageRotation imageRotation) async {
+    try {
+      if (mounted) {
+        setState(() {
+          _state = _state == KioskState.checkoutMode
+              ? KioskState.checkoutMode
+              : KioskState.recognizing;
+          if (_state != KioskState.checkoutMode) {
+            _statusText = 'Recognizing face...';
+          }
+        });
+      }
+
+      final Uint8List? imageBytes = await convertCameraImageToJpeg(
+        planes, bytesPerRow, bytesPerPixel, width, height, formatGroup, imageRotation
+      );
+      
+      if (imageBytes == null) {
+        throw Exception("Failed to encode image");
+      }
+
       final result = await _apiClient.recognize(
         kioskId: _kioskId,
         imageBytes: imageBytes,
         filename: 'capture_${DateTime.now().millisecondsSinceEpoch}.jpg',
       );
 
+      // If the face disappeared while we were uploading, abort processing the result!
+      if (!mounted || _detectedFace == null) {
+        return;
+      }
+
       final String? detail = result['detail']?.toString();
 
       if (detail != null && detail.contains('FACE_001')) {
-        setState(() {
-          _detectedFace = null;
-          _state = _state == KioskState.checkoutMode ? KioskState.checkoutMode : KioskState.detection;
-          if (_state != KioskState.checkoutMode) {
-             _statusText = 'Scanning for faces...';
-          }
-        });
+        if (mounted) {
+          setState(() {
+            _detectedFace = null;
+            _state = _state == KioskState.checkoutMode
+                ? KioskState.checkoutMode
+                : KioskState.detection;
+            if (_state != KioskState.checkoutMode) {
+              _statusText = 'Scanning for faces...';
+            }
+          });
+        }
+        _startDetection();
+        _isUploading = false;
         _isProcessing = false;
         return;
       }
@@ -238,66 +343,111 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
       final bool hasActiveSession = result['has_active_session'] == true;
 
       if (recognized && employeeId != null) {
-        setState(() {
-          _boxColor = Colors.green;
-          _recognizedText = name ?? 'Employee';
-        });
+        if (mounted) {
+          setState(() {
+            _boxColor = Colors.green;
+            _recognizedText = name ?? 'Employee';
+            _faceInViewRecognized = true;
+          });
+        }
 
         final isCheckout = _state == KioskState.checkoutMode;
-        
+
         if (_isInCooldown(employeeId, isCheckout)) {
-          setState(() {
-            _statusText = isCheckout
-                ? 'Already checked out.'
-                : 'Welcome back! Please wait a minute.';
-          });
+          if (mounted) {
+            setState(() {
+              _statusText = isCheckout
+                  ? 'Already checked out.'
+                  : 'Welcome back! Please wait a minute.';
+            });
+          }
           _scheduleReturnToDetection();
+          _isUploading = false;
           _isProcessing = false;
           return;
         }
 
         _updateCooldown(employeeId, isCheckout);
 
-        // Show Interactive Screen
-        _showInteractiveScreen(employeeId, name ?? 'Employee', hasActiveSession);
+        if (isCheckout) {
+          await _performCheckout(employeeId, name ?? 'Employee');
+        } else {
+          if (hasActiveSession) {
+            await _performCheckin(employeeId, name ?? 'Employee');
+          } else {
+            await _performCheckin(employeeId, name ?? 'Employee');
+          }
+        }
       } else {
-        setState(() {
-          _boxColor = Colors.red;
-          _recognizedText = 'Not Recognized';
-          _state = KioskState.error;
-          _statusText = 'Face not recognized. Please try again.';
-        });
-        _scheduleReturnToDetection();
+        if (mounted) {
+          setState(() {
+            _boxColor = Colors.red;
+            _recognizedText = 'Not Recognized';
+            _state = KioskState.error;
+            _statusText = 'Face not recognized. Please try again.';
+          });
+        }
+        _scheduleQuickReturn();
       }
     } on DioException catch (e) {
-      final detail = e.response?.data is Map ? e.response?.data['detail']?.toString() : null;
+      final detail = e.response?.data is Map
+          ? e.response?.data['detail']?.toString()
+          : null;
       if (detail != null && detail.contains('FACE_001')) {
-        setState(() { _detectedFace = null; });
+        if (mounted) setState(() => _detectedFace = null);
+        _startDetection();
       } else {
-        setState(() {
-           _boxColor = Colors.red;
-           _recognizedText = 'Error';
-           _state = KioskState.error;
-           _statusText = 'Face not recognized. Please try again.';
-        });
-        _scheduleReturnToDetection();
+        if (mounted) {
+          setState(() {
+            _boxColor = Colors.red;
+            _recognizedText = 'Error';
+            _state = KioskState.error;
+            _statusText = 'Network Error. Please try again.';
+          });
+        }
+        _scheduleQuickReturn();
       }
     } catch (e) {
       if (e.toString().contains('FACE_001')) {
-        setState(() { _detectedFace = null; });
+        if (mounted) setState(() => _detectedFace = null);
+        _startDetection();
       } else {
-        setState(() {
-           _boxColor = Colors.red;
-           _recognizedText = 'Error';
-           _state = KioskState.error;
-           _statusText = 'Recognition error. Retrying...';
-        });
-        _scheduleReturnToDetection();
+        if (mounted) {
+          setState(() {
+            _boxColor = Colors.red;
+            _recognizedText = 'Error';
+            _state = KioskState.error;
+            _statusText = 'Recognition error. Retrying...';
+          });
+        }
+        _scheduleQuickReturn();
       }
+    } finally {
+      _isUploading = false;
+      _isProcessing = false;
     }
-
-    _isProcessing = false;
   }
+
+  void _scheduleQuickReturn() {
+    _returnTimer?.cancel();
+    _returnTimer = Timer(
+      const Duration(seconds: 1), // Only wait 1 second on errors
+      () {
+        if (mounted) {
+          setState(() {
+            _state = KioskState.detection;
+            _statusText = 'Scanning for faces...';
+            _employeeName = '';
+            _detectedFace = null;
+            _recognizedText = null;
+            _faceInViewRecognized = false;
+          });
+          _startDetection();
+        }
+      },
+    );
+  }
+
 
   bool _isInCooldown(String employeeId, bool isCheckout) {
     final map = isCheckout ? _checkoutCooldownMap : _checkinCooldownMap;
@@ -323,15 +473,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _showInteractiveScreen(String employeeId, String name, bool hasActiveSession) {
-    setState(() {
-      _interactiveEmployeeId = employeeId;
-      _interactiveName = name;
-      _interactiveHasActiveSession = hasActiveSession;
-      _state = KioskState.interactiveMode;
-      _statusText = 'Waiting for user selection...';
-    });
-  }
+
 
   Future<void> _performCheckin(String employeeId, String name) async {
     try {
@@ -386,7 +528,9 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
             _employeeName = '';
             _detectedFace = null;
             _recognizedText = null;
+            _faceInViewRecognized = false;
           });
+          _startDetection();
         }
       },
     );
@@ -406,7 +550,8 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
       setState(() {
         if (_checkoutCountdown > 0) {
           _checkoutCountdown--;
-          _statusText = 'Checkout mode: Show your face to check out ($_checkoutCountdown s)';
+          _statusText =
+              'Checkout mode: Show your face to check out ($_checkoutCountdown s)';
         } else {
           _cancelCheckoutTimer();
           _state = KioskState.detection;
@@ -484,19 +629,29 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
             if (_cameraController != null &&
                 _cameraController!.value.isInitialized)
               Positioned.fill(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(0),
-                  child: CustomPaint(
-                    foregroundPainter: (_detectedFace != null && _imageSize != null)
-                      ? FacePainter(
-                          face: _detectedFace!,
-                          imageSize: _imageSize!,
-                          rotation: _imageRotation ?? InputImageRotation.rotation270deg,
-                          color: _boxColor,
-                          text: _recognizedText,
-                        )
-                      : null,
-                    child: CameraPreview(_cameraController!),
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: _cameraController!.value.previewSize!.height < _cameraController!.value.previewSize!.width
+                        ? _cameraController!.value.previewSize!.height
+                        : _cameraController!.value.previewSize!.width,
+                    height: _cameraController!.value.previewSize!.width > _cameraController!.value.previewSize!.height
+                        ? _cameraController!.value.previewSize!.width
+                        : _cameraController!.value.previewSize!.height,
+                    child: CustomPaint(
+                      foregroundPainter:
+                          (_detectedFace != null && _imageSize != null)
+                              ? FacePainter(
+                                  face: _detectedFace!,
+                                  imageSize: _imageSize!,
+                                  rotation: _imageRotation ??
+                                      InputImageRotation.rotation270deg,
+                                  color: _boxColor,
+                                  text: _recognizedText,
+                                )
+                              : null,
+                      child: CameraPreview(_cameraController!),
+                    ),
                   ),
                 ),
               ),
@@ -509,10 +664,10 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withValues(alpha: 0.3),
+                      Colors.black.withOpacity(0.3),
                       Colors.transparent,
                       Colors.transparent,
-                      Colors.black.withValues(alpha: 0.7),
+                      Colors.black.withOpacity(0.7),
                     ],
                     stops: const [0.0, 0.2, 0.6, 1.0],
                   ),
@@ -532,10 +687,10 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                     padding:
                         EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                     decoration: BoxDecoration(
-                      color: _getStateColor().withValues(alpha: 0.2),
+                      color: _getStateColor().withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20.r),
                       border: Border.all(
-                        color: _getStateColor().withValues(alpha: 0.5),
+                        color: _getStateColor().withOpacity(0.5),
                       ),
                     ),
                     child: Row(
@@ -552,7 +707,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                         SizedBox(width: 6.w),
                         Text(
                           _getStateLabel(),
-                          style: GoogleFonts.poppins(
+                          style: GoogleFonts.outfit(
                             color: Colors.white,
                             fontSize: 12.sp,
                             fontWeight: FontWeight.w500,
@@ -572,7 +727,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
 
             if (_state == KioskState.checkinSuccess)
               Positioned.fill(child: _buildWelcomeScreen()),
-            
+
             if (_state == KioskState.checkoutSuccess)
               Positioned.fill(child: _buildCheckoutScreen()),
 
@@ -591,7 +746,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                   children: [
                     Text(
                       _statusText,
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.outfit(
                         color: Colors.white70,
                         fontSize: 14.sp,
                       ),
@@ -637,15 +792,15 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
       label: Text(
         label,
         style:
-            GoogleFonts.poppins(fontSize: 13.sp, fontWeight: FontWeight.w500),
+            GoogleFonts.outfit(fontSize: 13.sp, fontWeight: FontWeight.w500),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: color.withValues(alpha: 0.2),
+        backgroundColor: color.withOpacity(0.2),
         foregroundColor: color,
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.r),
-          side: BorderSide(color: color.withValues(alpha: 0.4)),
+          side: BorderSide(color: color.withOpacity(0.4)),
         ),
         elevation: 0,
       ),
@@ -693,38 +848,38 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
   Future<void> _showAdminPinDialog() async {
     String pin = '';
     final bool? result = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF1A1A2E),
-          title: const Text('Admin Access', style: TextStyle(color: Colors.white)),
-          content: TextField(
-            autofocus: true,
-            obscureText: true,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              hintText: 'Enter Admin PIN',
-              hintStyle: TextStyle(color: Colors.white54),
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1A1A2E),
+            title: const Text('Admin Access',
+                style: TextStyle(color: Colors.white)),
+            content: TextField(
+              autofocus: true,
+              obscureText: true,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                hintText: 'Enter Admin PIN',
+                hintStyle: TextStyle(color: Colors.white54),
+              ),
+              onChanged: (value) => pin = value,
+              onSubmitted: (value) {
+                Navigator.pop(context, pin == '1234');
+              },
             ),
-            onChanged: (value) => pin = value,
-            onSubmitted: (value) {
-              Navigator.pop(context, pin == '1234');
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, pin == '1234'),
-              child: const Text('Submit'),
-            ),
-          ],
-        );
-      }
-    );
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, pin == '1234'),
+                child: const Text('Submit'),
+              ),
+            ],
+          );
+        });
 
     if (result == true) {
       _logout();
@@ -747,7 +902,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
         ),
         title: Text(
           'Kiosk Settings',
-          style: GoogleFonts.poppins(
+          style: GoogleFonts.outfit(
             color: Colors.white,
             fontWeight: FontWeight.w600,
           ),
@@ -773,7 +928,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                   _showAdminPinDialog();
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.withValues(alpha: 0.2),
+                  backgroundColor: Colors.red.withOpacity(0.2),
                   foregroundColor: Colors.red,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8.r),
@@ -781,7 +936,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                 ),
                 child: Text(
                   'Logout',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -799,11 +954,11 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
         children: [
           Text(
             label,
-            style: GoogleFonts.poppins(color: Colors.white54, fontSize: 13.sp),
+            style: GoogleFonts.outfit(color: Colors.white54, fontSize: 13.sp),
           ),
           Text(
             value,
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.outfit(
               color: Colors.white,
               fontSize: 13.sp,
               fontWeight: FontWeight.w500,
@@ -828,9 +983,9 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF1A1A2E).withValues(alpha: 0.95),
-            const Color(0xFF16213E).withValues(alpha: 0.95),
-            const Color(0xFF0F3460).withValues(alpha: 0.95),
+            const Color(0xFF1A1A2E).withOpacity(0.95),
+            const Color(0xFF16213E).withOpacity(0.95),
+            const Color(0xFF0F3460).withOpacity(0.95),
           ],
         ),
       ),
@@ -844,10 +999,11 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                 height: 160.w,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const LinearGradient(colors: [Color(0xFF4CAF50), Color(0xFF81C784)]),
+                  gradient: const LinearGradient(
+                      colors: [Color(0xFF4CAF50), Color(0xFF81C784)]),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF4CAF50).withValues(alpha: 0.4),
+                      color: const Color(0xFF4CAF50).withOpacity(0.4),
                       blurRadius: 30,
                       spreadRadius: 5,
                     )
@@ -855,34 +1011,46 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                 ),
                 child: Center(
                   child: Text(
-                    _employeeName.isNotEmpty ? _employeeName[0].toUpperCase() : 'E',
-                    style: GoogleFonts.poppins(fontSize: 64.sp, fontWeight: FontWeight.w700, color: Colors.white),
+                    _employeeName.isNotEmpty
+                        ? _employeeName[0].toUpperCase()
+                        : 'E',
+                    style: GoogleFonts.outfit(
+                        fontSize: 64.sp,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white),
                   ),
                 ),
               ),
               SizedBox(height: 40.h),
               Text(
                 'Hey $_employeeName!',
-                style: GoogleFonts.poppins(fontSize: 36.sp, fontWeight: FontWeight.w700, color: Colors.white),
+                style: GoogleFonts.outfit(
+                    fontSize: 36.sp,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 12.h),
               Text(
                 '${_getGreeting()}! Welcome to the office.',
-                style: GoogleFonts.poppins(fontSize: 20.sp, fontWeight: FontWeight.w400, color: Colors.white70),
+                style: GoogleFonts.outfit(
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white70),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 8.h),
               Text(
                 'Wishing you a wonderful and productive day ahead!',
-                style: GoogleFonts.poppins(fontSize: 16.sp, color: Colors.white54),
+                style:
+                    GoogleFonts.outfit(fontSize: 16.sp, color: Colors.white54),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 48.h),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: Colors.white.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(30.r),
                   border: Border.all(color: Colors.white24),
                 ),
@@ -893,7 +1061,8 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                     SizedBox(width: 8.w),
                     Text(
                       'Checked in at ${TimeOfDay.now().format(context)}',
-                      style: GoogleFonts.poppins(fontSize: 14.sp, color: Colors.white60),
+                      style: GoogleFonts.outfit(
+                          fontSize: 14.sp, color: Colors.white60),
                     ),
                   ],
                 ),
@@ -933,12 +1102,15 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                   color: Colors.blue.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.touch_app_rounded, color: Colors.blue, size: 48.sp),
+                child: Icon(Icons.touch_app_rounded,
+                    color: Colors.blue, size: 48.sp),
               ),
               SizedBox(height: 24.h),
               Text(
-                _interactiveName != null ? _getGreetingMessage(_interactiveName!) : 'Welcome!',
-                style: GoogleFonts.poppins(
+                _interactiveName != null
+                    ? _getGreetingMessage(_interactiveName!)
+                    : 'Welcome!',
+                style: GoogleFonts.outfit(
                   fontSize: 28.sp,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -947,10 +1119,10 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
               ),
               SizedBox(height: 12.h),
               Text(
-                _interactiveHasActiveSession 
-                  ? 'You are already checked in. What would you like to do?'
-                  : 'Welcome! What would you like to do?',
-                style: GoogleFonts.poppins(
+                _interactiveHasActiveSession
+                    ? 'You are already checked in. What would you like to do?'
+                    : 'Welcome! What would you like to do?',
+                style: GoogleFonts.outfit(
                   fontSize: 16.sp,
                   color: Colors.white70,
                 ),
@@ -966,20 +1138,26 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                       Icons.logout_rounded,
                       Colors.red,
                       () {
-                        if (_interactiveEmployeeId != null && _interactiveName != null) {
-                          _performCheckout(_interactiveEmployeeId!, _interactiveName!);
+                        if (_interactiveEmployeeId != null &&
+                            _interactiveName != null) {
+                          _performCheckout(
+                              _interactiveEmployeeId!, _interactiveName!);
                         }
                       },
                     ),
                     SizedBox(width: 20.w),
                   ],
                   _buildInteractiveButton(
-                    _interactiveHasActiveSession ? 'Check In Again' : 'Check In',
+                    _interactiveHasActiveSession
+                        ? 'Check In Again'
+                        : 'Check In',
                     Icons.login_rounded,
                     Colors.green,
                     () {
-                      if (_interactiveEmployeeId != null && _interactiveName != null) {
-                        _performCheckin(_interactiveEmployeeId!, _interactiveName!);
+                      if (_interactiveEmployeeId != null &&
+                          _interactiveName != null) {
+                        _performCheckin(
+                            _interactiveEmployeeId!, _interactiveName!);
                       }
                     },
                   ),
@@ -1001,7 +1179,8 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildInteractiveButton(String text, IconData icon, Color color, VoidCallback onPressed) {
+  Widget _buildInteractiveButton(
+      String text, IconData icon, Color color, VoidCallback onPressed) {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
@@ -1021,7 +1200,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
           SizedBox(width: 8.w),
           Text(
             text,
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.outfit(
               fontSize: 16.sp,
               fontWeight: FontWeight.w600,
             ),
@@ -1038,8 +1217,8 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            const Color(0xFF1A1A2E).withValues(alpha: 0.95),
-            const Color(0xFF1B2838).withValues(alpha: 0.95),
+            const Color(0xFF1A1A2E).withOpacity(0.95),
+            const Color(0xFF1B2838).withOpacity(0.95),
           ],
         ),
       ),
@@ -1053,10 +1232,11 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                 height: 140.w,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const LinearGradient(colors: [Color(0xFFFF9800), Color(0xFFFFCC80)]),
+                  gradient: const LinearGradient(
+                      colors: [Color(0xFFFF9800), Color(0xFFFFCC80)]),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFF9800).withValues(alpha: 0.4),
+                      color: const Color(0xFFFF9800).withOpacity(0.4),
                       blurRadius: 30,
                       spreadRadius: 5,
                     )
@@ -1064,34 +1244,44 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                 ),
                 child: Center(
                   child: Text(
-                    _employeeName.isNotEmpty ? _employeeName[0].toUpperCase() : 'E',
-                    style: GoogleFonts.poppins(fontSize: 56.sp, fontWeight: FontWeight.w700, color: Colors.white),
+                    _employeeName.isNotEmpty
+                        ? _employeeName[0].toUpperCase()
+                        : 'E',
+                    style: GoogleFonts.outfit(
+                        fontSize: 56.sp,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white),
                   ),
                 ),
               ),
               SizedBox(height: 36.h),
               Text(
                 'Hey $_employeeName!',
-                style: GoogleFonts.poppins(fontSize: 28.sp, fontWeight: FontWeight.w600, color: Colors.white),
+                style: GoogleFonts.outfit(
+                    fontSize: 28.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 16.h),
               Text(
                 'You have successfully checked out today.',
-                style: GoogleFonts.poppins(fontSize: 17.sp, color: Colors.white70, height: 1.5),
+                style: GoogleFonts.outfit(
+                    fontSize: 17.sp, color: Colors.white70, height: 1.5),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 8.h),
               Text(
                 'Have a great evening!',
-                style: GoogleFonts.poppins(fontSize: 16.sp, color: Colors.white54),
+                style:
+                    GoogleFonts.outfit(fontSize: 16.sp, color: Colors.white54),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 48.h),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: Colors.white.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(30.r),
                   border: Border.all(color: Colors.white24),
                 ),
@@ -1102,7 +1292,8 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                     SizedBox(width: 8.w),
                     Text(
                       'Checked out at ${TimeOfDay.now().format(context)}',
-                      style: GoogleFonts.poppins(fontSize: 14.sp, color: Colors.white60),
+                      style: GoogleFonts.outfit(
+                          fontSize: 14.sp, color: Colors.white60),
                     ),
                   ],
                 ),
@@ -1140,43 +1331,49 @@ class FacePainter extends CustomPainter {
     double scaleX = size.width / imageSize.width;
     double scaleY = size.height / imageSize.height;
 
-    // Expand bounds to include head with hair
-    final boxWidth = face.boundingBox.width;
-    final boxHeight = face.boundingBox.height;
-    
-    // Expand top by 30%, bottom by 5%, sides by 15%
-    final expandedTop = face.boundingBox.top - (boxHeight * 0.3);
-    final expandedBottom = face.boundingBox.bottom + (boxHeight * 0.05);
-    final expandedLeft = face.boundingBox.left - (boxWidth * 0.15);
-    final expandedRight = face.boundingBox.right + (boxWidth * 0.15);
-
     // Mirror horizontal for front camera
-    final left = size.width - (expandedRight * scaleX);
-    final right = size.width - (expandedLeft * scaleX);
-    final top = expandedTop * scaleY;
-    final bottom = expandedBottom * scaleY;
+    final left = size.width - (face.boundingBox.right * scaleX);
+    final right = size.width - (face.boundingBox.left * scaleX);
+    final top = face.boundingBox.top * scaleY;
+    final bottom = face.boundingBox.bottom * scaleY;
 
-    final Rect rect = Rect.fromLTRB(left, top, right, bottom);
+    final double width = right - left;
+    final double height = bottom - top;
+
+    // Use exact height to perfectly fit forehead to chin, and reduce width for a vertical rectangle
+    final double adjustedWidth = width * 0.75;
+    final double adjustedHeight = height;
+
+    final double centerX = left + width / 2;
+    final double centerY = top + height / 2;
+
+    final double adjustedLeft = centerX - adjustedWidth / 2;
+    final double adjustedRight = centerX + adjustedWidth / 2;
+    final double adjustedTop = centerY - adjustedHeight / 2;
+    final double adjustedBottom = centerY + adjustedHeight / 2;
+
+    final Rect rect = Rect.fromLTRB(adjustedLeft, adjustedTop, adjustedRight, adjustedBottom);
     canvas.drawRect(rect, paint);
 
     if (text != null && text!.isNotEmpty) {
       final textPainter = TextPainter(
         text: TextSpan(
           text: text,
-          style: GoogleFonts.poppins(
+          style: GoogleFonts.outfit(
             color: Colors.white,
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            backgroundColor: color.withValues(alpha: 0.8),
+            backgroundColor: color.withOpacity(0.8),
           ),
         ),
         textDirection: TextDirection.ltr,
       );
       textPainter.layout();
-      
-      final bgRect = Rect.fromLTWH(left, bottom + 4, textPainter.width + 16, textPainter.height + 8);
-      canvas.drawRect(bgRect, Paint()..color = color.withValues(alpha: 0.9));
-      
+
+      final bgRect = Rect.fromLTWH(
+          left, bottom + 4, textPainter.width + 16, textPainter.height + 8);
+      canvas.drawRect(bgRect, Paint()..color = color.withOpacity(0.9));
+
       textPainter.paint(canvas, Offset(left + 8, bottom + 8));
     }
   }

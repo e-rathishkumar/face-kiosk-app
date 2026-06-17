@@ -87,7 +87,7 @@ class _LoginPageState extends State<LoginPage> {
                       borderRadius: BorderRadius.circular(18.r),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
+                          color: const Color(0xFF4F46E5).withOpacity(0.3),
                           blurRadius: 20,
                           spreadRadius: 2,
                         ),
@@ -103,7 +103,7 @@ class _LoginPageState extends State<LoginPage> {
 
                   Text(
                     'Welcome Back',
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.outfit(
                       fontSize: 26.sp,
                       fontWeight: FontWeight.w700,
                       color: const Color(0xFF1a1a2e),
@@ -112,7 +112,7 @@ class _LoginPageState extends State<LoginPage> {
                   SizedBox(height: 6.h),
                   Text(
                     'Sign in to view your attendance',
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.outfit(
                       fontSize: 13.sp,
                       color: Colors.grey.shade500,
                     ),
@@ -122,10 +122,10 @@ class _LoginPageState extends State<LoginPage> {
                   // Username
                   TextField(
                     controller: _usernameController,
-                    style: GoogleFonts.poppins(fontSize: 14.sp),
+                    style: GoogleFonts.outfit(fontSize: 14.sp),
                     decoration: InputDecoration(
                       labelText: 'Username',
-                      labelStyle: GoogleFonts.poppins(color: Colors.grey.shade500),
+                      labelStyle: GoogleFonts.outfit(color: Colors.grey.shade500),
                       prefixIcon: Icon(Icons.person_outline, color: Colors.grey.shade400),
                     ),
                   ),
@@ -135,11 +135,11 @@ class _LoginPageState extends State<LoginPage> {
                   TextField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    style: GoogleFonts.poppins(fontSize: 14.sp),
+                    style: GoogleFonts.outfit(fontSize: 14.sp),
                     onSubmitted: (_) => _submit(),
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      labelStyle: GoogleFonts.poppins(color: Colors.grey.shade500),
+                      labelStyle: GoogleFonts.outfit(color: Colors.grey.shade500),
                       prefixIcon: Icon(Icons.lock_outline, color: Colors.grey.shade400),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -173,7 +173,7 @@ class _LoginPageState extends State<LoginPage> {
                                 )
                               : Text(
                                   'Sign In',
-                                  style: GoogleFonts.poppins(
+                                  style: GoogleFonts.outfit(
                                     fontSize: 15.sp,
                                     fontWeight: FontWeight.w600,
                                   ),
