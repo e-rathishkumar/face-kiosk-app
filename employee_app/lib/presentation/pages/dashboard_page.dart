@@ -132,10 +132,9 @@ class DashboardPage extends StatelessWidget {
   Widget _buildGreeting(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        final name = state is AuthAuthenticated
-            ? state.user.firstName
-            : 'Employee';
-        
+        final name =
+            state is AuthAuthenticated ? state.user.firstName : 'Employee';
+
         // Simple time-based greeting
         final hour = DateTime.now().hour;
         String greeting = 'Good Evening';
@@ -236,27 +235,29 @@ class DashboardPage extends StatelessWidget {
               ),
               SizedBox(height: 24.h),
               Center(
-                child: Builder(
-                  builder: (context) {
-                    final dashData = state is AttendanceLoaded ? state.dashboardData : null;
-                    final totalHoursRaw = dashData?['total_hours_today'];
-                    final totalHoursStr = (totalHoursRaw == null || totalHoursRaw == 0.0) 
-                        ? '--:--' 
-                        : '${(totalHoursRaw as num).toStringAsFixed(1)} hrs';
-                        
-                    return Container(
-                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20.r),
-                      ),
-                      child: Text(
-                        'Total Hours: $totalHoursStr',
-                        style: AppTypography.labelLarge.copyWith(color: Colors.white),
-                      ),
-                    );
-                  }
-                ),
+                child: Builder(builder: (context) {
+                  final dashData =
+                      state is AttendanceLoaded ? state.dashboardData : null;
+                  final totalHoursRaw = dashData?['total_hours_today'];
+                  final totalHoursStr =
+                      (totalHoursRaw == null || totalHoursRaw == 0.0)
+                          ? '--:--'
+                          : '${(totalHoursRaw as num).toStringAsFixed(1)} hrs';
+
+                  return Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    child: Text(
+                      'Work Hours : $totalHoursStr',
+                      style: AppTypography.labelLarge
+                          .copyWith(color: Colors.white),
+                    ),
+                  );
+                }),
               ),
             ],
           ),
@@ -293,8 +294,6 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-
-
   Widget _buildMonthlySummary(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,7 +305,8 @@ class DashboardPage extends StatelessWidget {
         SizedBox(height: 16.h),
         BlocBuilder<AttendanceBloc, AttendanceState>(
           builder: (context, state) {
-            final dashData = state is AttendanceLoaded ? state.dashboardData : null;
+            final dashData =
+                state is AttendanceLoaded ? state.dashboardData : null;
             // Provide some default dummy data if dashboard fetch fails or is loading
             final present = dashData?['present_today'] ?? 0;
             final absent = dashData?['absent_today'] ?? 0;
@@ -316,7 +316,8 @@ class DashboardPage extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => MonthlyStatusScreen(title: title, dates: dates),
+                  builder: (_) =>
+                      MonthlyStatusScreen(title: title, dates: dates),
                 ),
               );
             }
@@ -329,7 +330,8 @@ class DashboardPage extends StatelessWidget {
                     value: present.toString(),
                     icon: Icons.check_circle_outline,
                     color: AppTheme.successColor,
-                    onTap: () => navigateToStatusScreen(Strings.present, dashData?['present_dates'] ?? []),
+                    onTap: () => navigateToStatusScreen(
+                        Strings.present, dashData?['present_dates'] ?? []),
                   ),
                 ),
                 SizedBox(width: 12.w),
@@ -339,7 +341,8 @@ class DashboardPage extends StatelessWidget {
                     value: absent.toString(),
                     icon: Icons.event_busy,
                     color: AppTheme.errorColor,
-                    onTap: () => navigateToStatusScreen(Strings.absent, dashData?['absent_dates'] ?? []),
+                    onTap: () => navigateToStatusScreen(
+                        Strings.absent, dashData?['absent_dates'] ?? []),
                   ),
                 ),
                 SizedBox(width: 12.w),
@@ -349,7 +352,8 @@ class DashboardPage extends StatelessWidget {
                     value: late.toString(),
                     icon: Icons.access_time,
                     color: AppTheme.warningColor,
-                    onTap: () => navigateToStatusScreen(Strings.late, dashData?['late_dates'] ?? []),
+                    onTap: () => navigateToStatusScreen(
+                        Strings.late, dashData?['late_dates'] ?? []),
                   ),
                 ),
               ],
@@ -370,40 +374,40 @@ class DashboardPage extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppTheme.dividerColor),
-        boxShadow: AppTheme.cardShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: EdgeInsets.all(8.w),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8.r),
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: AppTheme.dividerColor),
+          boxShadow: AppTheme.cardShadow,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: EdgeInsets.all(8.w),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Icon(icon, color: color, size: 20.sp),
             ),
-            child: Icon(icon, color: color, size: 20.sp),
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            value,
-            style: AppTypography.h3.copyWith(
-              color: AppTheme.textPrimary,
-              fontWeight: FontWeight.w700,
+            SizedBox(height: 16.h),
+            Text(
+              value,
+              style: AppTypography.h3.copyWith(
+                color: AppTheme.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-          SizedBox(height: 4.h),
-          Text(
-            title,
-            style: AppTypography.caption,
-          ),
-        ],
+            SizedBox(height: 4.h),
+            Text(
+              title,
+              style: AppTypography.caption,
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -422,7 +426,8 @@ class DashboardPage extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const RecentActivitiesScreen()),
+                  MaterialPageRoute(
+                      builder: (_) => const RecentActivitiesScreen()),
                 );
               },
               child: Text(
@@ -463,7 +468,8 @@ class DashboardPage extends StatelessWidget {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: activities.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1),
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final activity = activities[index];
                     return _buildActivityItem(activity);
@@ -533,15 +539,17 @@ class DashboardPage extends StatelessWidget {
           ? Container(
               padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
               decoration: BoxDecoration(
-                color: activity.status == 'ACTIVE' || activity.status == 'PRESENT'
-                    ? AppTheme.successColor.withOpacity(0.1)
-                    : AppTheme.warningColor.withOpacity(0.1),
+                color:
+                    activity.status == 'ACTIVE' || activity.status == 'PRESENT'
+                        ? AppTheme.successColor.withOpacity(0.1)
+                        : AppTheme.warningColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20.r),
               ),
               child: Text(
                 activity.status!,
                 style: AppTypography.labelSmall.copyWith(
-                  color: activity.status == 'ACTIVE' || activity.status == 'PRESENT'
+                  color: activity.status == 'ACTIVE' ||
+                          activity.status == 'PRESENT'
                       ? AppTheme.successColor
                       : AppTheme.warningColor,
                   fontWeight: FontWeight.w600,
