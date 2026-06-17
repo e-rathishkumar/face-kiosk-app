@@ -1046,6 +1046,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
             Center(
               child: SingleChildScrollView(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
@@ -1188,6 +1189,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
               ),
               SizedBox(height: 40.h),
               Column(
+                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (_interactiveHasActiveSession) ...[
@@ -1298,6 +1300,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
             Center(
               child: SingleChildScrollView(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
