@@ -32,9 +32,12 @@ class EmployeeFaceService:
         pose,
         image
     ):
+        image_bytes = image.file.read()
+        
         image_path = (
-            FileService.save_face_image(
-                image
+            FileService.save_face_image_bytes(
+                image.filename,
+                image_bytes
             )
         )
 
@@ -43,7 +46,7 @@ class EmployeeFaceService:
 
         embedding = (
             FaceEmbedder.generate_embedding(
-                image_path
+                image_bytes
             )
         )
 
