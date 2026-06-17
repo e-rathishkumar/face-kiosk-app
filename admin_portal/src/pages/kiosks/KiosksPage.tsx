@@ -70,7 +70,13 @@ export default function KiosksPage() {
 
             heartbeat:
               healthInfo?.last_heartbeat
-                ? dayjs(
+                ? dayjs(typeof 
+                    healthInfo.last_heartbeat
+                   === 'string' && !
+                    healthInfo.last_heartbeat
+                  .endsWith('Z') ? 
+                    healthInfo.last_heartbeat
+                   + 'Z' : 
                     healthInfo.last_heartbeat
                   ).format(
                     "DD MMM YYYY"

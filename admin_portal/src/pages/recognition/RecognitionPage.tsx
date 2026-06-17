@@ -70,7 +70,13 @@ export default function RecognitionPage() {
               ).toFixed(2)}%`,
 
             event_display:
-              dayjs(
+              dayjs(typeof 
+                log.event_time
+               === 'string' && !
+                log.event_time
+              .endsWith('Z') ? 
+                log.event_time
+               + 'Z' : 
                 log.event_time
               ).format(
                 "DD MMM YYYY hh:mm A"

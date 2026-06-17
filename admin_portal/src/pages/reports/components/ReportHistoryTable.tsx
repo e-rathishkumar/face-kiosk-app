@@ -26,7 +26,13 @@ export default function ReportHistoryTable({
       headerName: "Generated At",
       flex: 1.5,
       renderCell: (params: any) =>
-        dayjs(
+        dayjs(typeof 
+          params.value
+         === 'string' && !
+          params.value
+        .endsWith('Z') ? 
+          params.value
+         + 'Z' : 
           params.value
         ).format(
           "DD-MMM-YYYY hh:mm A"

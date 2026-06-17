@@ -68,11 +68,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthError(message: error));
         emit(currentState);
       },
-      (_) async {
-        // Refresh profile after password update
-        add(const AuthProfileRefreshRequested());
+      (_) {
+        // Will handle success after fold
       },
     );
+
+    if (result.isRight()) {
+      final updatedUser = await _authRepository.getCachedUser();
+      if (updatedUser != null) {
+        emit(AuthAuthenticated(user: updatedUser));
+      } else {
+        emit(currentState);
+        add(const AuthProfileRefreshRequested());
+      }
+    }
   }
 
   Future<void> _onProfileRefresh(

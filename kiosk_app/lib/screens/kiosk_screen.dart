@@ -21,6 +21,7 @@ enum KioskState {
   checkinSuccess,
   checkoutMode,
   checkoutSuccess,
+  interactiveMode,
   error,
 }
 
@@ -46,6 +47,12 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
   bool _isProcessing = false;
 
   // MLKit Face Detection
+  
+  // Interactive mode state
+  String? _interactiveEmployeeId;
+  String? _interactiveName;
+  bool _interactiveHasActiveSession = false;
+
   final FaceDetector _faceDetector = FaceDetector(
     options: FaceDetectorOptions(
       enableTracking: false,
@@ -228,6 +235,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
       final bool recognized = result['recognized'] == true;
       final String? employeeId = result['employee_id']?.toString();
       final String? name = result['employee_name']?.toString();
+      final bool hasActiveSession = result['has_active_session'] == true;
 
       if (recognized && employeeId != null) {
         setState(() {
@@ -241,7 +249,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
           setState(() {
             _statusText = isCheckout
                 ? 'Already checked out.'
-                : 'Welcome back! Already checked in.';
+                : 'Welcome back! Please wait a minute.';
           });
           _scheduleReturnToDetection();
           _isProcessing = false;
@@ -250,20 +258,16 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
 
         _updateCooldown(employeeId, isCheckout);
 
-        if (isCheckout) {
-          await _performCheckout(employeeId, name ?? 'Employee');
-        } else {
-          await _performCheckin(employeeId, name ?? 'Employee');
-        }
+        // Show Interactive Screen
+        _showInteractiveScreen(employeeId, name ?? 'Employee', hasActiveSession);
       } else {
         setState(() {
           _boxColor = Colors.red;
           _recognizedText = 'Not Recognized';
-          _state = _state == KioskState.checkoutMode ? KioskState.checkoutMode : KioskState.detection;
-          if (_state != KioskState.checkoutMode) {
-            _statusText = 'Face not recognized. Please try again.';
-          }
+          _state = KioskState.error;
+          _statusText = 'Face not recognized. Please try again.';
         });
+        _scheduleReturnToDetection();
       }
     } on DioException catch (e) {
       final detail = e.response?.data is Map ? e.response?.data['detail']?.toString() : null;
@@ -273,8 +277,10 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
         setState(() {
            _boxColor = Colors.red;
            _recognizedText = 'Error';
+           _state = KioskState.error;
            _statusText = 'Face not recognized. Please try again.';
         });
+        _scheduleReturnToDetection();
       }
     } catch (e) {
       if (e.toString().contains('FACE_001')) {
@@ -283,8 +289,10 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
         setState(() {
            _boxColor = Colors.red;
            _recognizedText = 'Error';
+           _state = KioskState.error;
            _statusText = 'Recognition error. Retrying...';
         });
+        _scheduleReturnToDetection();
       }
     }
 
@@ -304,6 +312,27 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
     map[employeeId] = DateTime.now();
   }
 
+  String _getGreetingMessage(String name) {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good morning, $name!';
+    } else if (hour < 17) {
+      return 'Good afternoon, $name!';
+    } else {
+      return 'Good evening, $name!';
+    }
+  }
+
+  void _showInteractiveScreen(String employeeId, String name, bool hasActiveSession) {
+    setState(() {
+      _interactiveEmployeeId = employeeId;
+      _interactiveName = name;
+      _interactiveHasActiveSession = hasActiveSession;
+      _state = KioskState.interactiveMode;
+      _statusText = 'Waiting for user selection...';
+    });
+  }
+
   Future<void> _performCheckin(String employeeId, String name) async {
     try {
       await _apiClient.checkIn(
@@ -314,13 +343,12 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
       setState(() {
         _state = KioskState.checkinSuccess;
         _employeeName = name;
-        _statusText = 'Check-in successful!';
+        _statusText = '${_getGreetingMessage(name)}\nCheck-in successful!';
       });
     } catch (e) {
       setState(() {
-        _state = KioskState.checkinSuccess;
-        _employeeName = name;
-        _statusText = 'Welcome! Already checked in today.';
+        _state = KioskState.error;
+        _statusText = 'Check-in failed.';
       });
     }
 
@@ -334,7 +362,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
       setState(() {
         _state = KioskState.checkoutSuccess;
         _employeeName = name;
-        _statusText = 'Check-out successful!';
+        _statusText = '${_getGreetingMessage(name)}\nCheck-out successful!';
       });
     } catch (e) {
       setState(() {
@@ -548,6 +576,8 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
             if (_state == KioskState.checkoutSuccess)
               Positioned.fill(child: _buildCheckoutScreen()),
 
+            if (_state == KioskState.interactiveMode)
+              Positioned.fill(child: _buildInteractiveScreen()),
 
             // Bottom bar
             Positioned(
@@ -634,6 +664,8 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
         return Colors.orangeAccent;
       case KioskState.checkoutSuccess:
         return const Color(0xFF6366F1);
+      case KioskState.interactiveMode:
+        return Colors.blueAccent;
       case KioskState.error:
         return Colors.red;
     }
@@ -651,8 +683,57 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
         return 'Checkout Mode';
       case KioskState.checkoutSuccess:
         return 'Check-Out';
+      case KioskState.interactiveMode:
+        return 'User Selection';
       case KioskState.error:
         return 'Error';
+    }
+  }
+
+  Future<void> _showAdminPinDialog() async {
+    String pin = '';
+    final bool? result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1A1A2E),
+          title: const Text('Admin Access', style: TextStyle(color: Colors.white)),
+          content: TextField(
+            autofocus: true,
+            obscureText: true,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: 'Enter Admin PIN',
+              hintStyle: TextStyle(color: Colors.white54),
+            ),
+            onChanged: (value) => pin = value,
+            onSubmitted: (value) {
+              Navigator.pop(context, pin == '1234');
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, pin == '1234'),
+              child: const Text('Submit'),
+            ),
+          ],
+        );
+      }
+    );
+
+    if (result == true) {
+      _logout();
+    } else if (result == false) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Incorrect PIN')),
+        );
+      }
     }
   }
 
@@ -689,7 +770,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  _logout();
+                  _showAdminPinDialog();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red.withValues(alpha: 0.2),
@@ -820,6 +901,132 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildInteractiveScreen() {
+    return Container(
+      color: const Color(0xFF1A1A2E).withOpacity(0.95),
+      child: Center(
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 40.h),
+          margin: EdgeInsets.symmetric(horizontal: 40.w),
+          decoration: BoxDecoration(
+            color: const Color(0xFF16213E),
+            borderRadius: BorderRadius.circular(24.r),
+            border: Border.all(color: Colors.white12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 30,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.all(20.r),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.touch_app_rounded, color: Colors.blue, size: 48.sp),
+              ),
+              SizedBox(height: 24.h),
+              Text(
+                _interactiveName != null ? _getGreetingMessage(_interactiveName!) : 'Welcome!',
+                style: GoogleFonts.poppins(
+                  fontSize: 28.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 12.h),
+              Text(
+                _interactiveHasActiveSession 
+                  ? 'You are already checked in. What would you like to do?'
+                  : 'Welcome! What would you like to do?',
+                style: GoogleFonts.poppins(
+                  fontSize: 16.sp,
+                  color: Colors.white70,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 40.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (_interactiveHasActiveSession) ...[
+                    _buildInteractiveButton(
+                      'Check Out',
+                      Icons.logout_rounded,
+                      Colors.red,
+                      () {
+                        if (_interactiveEmployeeId != null && _interactiveName != null) {
+                          _performCheckout(_interactiveEmployeeId!, _interactiveName!);
+                        }
+                      },
+                    ),
+                    SizedBox(width: 20.w),
+                  ],
+                  _buildInteractiveButton(
+                    _interactiveHasActiveSession ? 'Check In Again' : 'Check In',
+                    Icons.login_rounded,
+                    Colors.green,
+                    () {
+                      if (_interactiveEmployeeId != null && _interactiveName != null) {
+                        _performCheckin(_interactiveEmployeeId!, _interactiveName!);
+                      }
+                    },
+                  ),
+                  SizedBox(width: 20.w),
+                  _buildInteractiveButton(
+                    'No Thanks',
+                    Icons.close_rounded,
+                    Colors.grey,
+                    () {
+                      _scheduleReturnToDetection();
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInteractiveButton(String text, IconData icon, Color color, VoidCallback onPressed) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color.withOpacity(0.15),
+        foregroundColor: color,
+        elevation: 0,
+        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+          side: BorderSide(color: color.withOpacity(0.5), width: 1.5),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 24.sp),
+          SizedBox(width: 8.w),
+          Text(
+            text,
+            style: GoogleFonts.poppins(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

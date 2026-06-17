@@ -27,7 +27,8 @@ export default function AttendanceTrendChart({
   });
 
   attendance.forEach((record: any) => {
-    const recordDate = dayjs(record.check_in_time).format("YYYY-MM-DD");
+    const timeStr = record.check_in_time.endsWith('Z') ? record.check_in_time : `${record.check_in_time}Z`;
+    const recordDate = dayjs(typeof timeStr === 'string' && !timeStr.endsWith('Z') ? timeStr + 'Z' : timeStr).format("YYYY-MM-DD");
     const day = last7Days.find((d) => d.fullDate === recordDate);
     if (day) {
       day.count += 1;

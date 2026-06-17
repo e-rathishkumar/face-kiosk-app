@@ -113,7 +113,7 @@ export default function ReportsPage() {
         value: string
       ) =>
         value
-          ? dayjs(value).format(
+          ? dayjs(typeof value === 'string' && !value.endsWith('Z') ? value + 'Z' : value).format(
               "DD MMM YYYY hh:mm A"
             )
           : "-",
@@ -126,7 +126,7 @@ export default function ReportsPage() {
         value: string
       ) =>
         value
-          ? dayjs(value).format(
+          ? dayjs(typeof value === 'string' && !value.endsWith('Z') ? value + 'Z' : value).format(
               "DD MMM YYYY hh:mm A"
             )
           : "-",

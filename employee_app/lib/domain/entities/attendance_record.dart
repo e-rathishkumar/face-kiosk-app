@@ -27,10 +27,12 @@ class AttendanceRecord extends Equatable {
     DateTime? checkOutTime;
 
     if (json['check_in_time'] != null) {
-      checkInTime = DateTime.tryParse(json['check_in_time'].toString());
+      final dateStr = json['check_in_time'].toString();
+      checkInTime = DateTime.tryParse(dateStr.endsWith('Z') ? dateStr : '${dateStr}Z')?.toLocal();
     }
     if (json['check_out_time'] != null) {
-      checkOutTime = DateTime.tryParse(json['check_out_time'].toString());
+      final dateStr = json['check_out_time'].toString();
+      checkOutTime = DateTime.tryParse(dateStr.endsWith('Z') ? dateStr : '${dateStr}Z')?.toLocal();
     }
 
     Duration? workDur;

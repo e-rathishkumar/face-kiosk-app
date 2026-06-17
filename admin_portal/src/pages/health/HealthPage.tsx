@@ -105,7 +105,7 @@ export default function HealthPage() {
         ...item,
         id: item.kiosk_id,
         heartbeat: item.last_heartbeat
-          ? dayjs(item.last_heartbeat).format(
+          ? dayjs(typeof item.last_heartbeat === 'string' && !item.last_heartbeat.endsWith('Z') ? item.last_heartbeat + 'Z' : item.last_heartbeat).format(
               "DD MMM YYYY hh:mm A"
             )
           : "-",

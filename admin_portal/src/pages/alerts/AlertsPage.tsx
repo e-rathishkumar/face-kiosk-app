@@ -145,7 +145,7 @@ export default function AlertsPage() {
   });
 
   rows.forEach((alert: any) => {
-    const d = dayjs(alert.created_at).format("YYYY-MM-DD");
+    const d = dayjs(typeof alert.created_at === 'string' && !alert.created_at.endsWith('Z') ? alert.created_at + 'Z' : alert.created_at).format("YYYY-MM-DD");
     const day = trendData.find((dd) => dd.fullDate === d);
     if (day) day.count += 1;
   });
@@ -194,7 +194,7 @@ export default function AlertsPage() {
       flex: 1.5,
       valueGetter: (value: string) =>
         value
-          ? dayjs(value).format("DD MMM hh:mm A")
+          ? dayjs(typeof value === 'string' && !value.endsWith('Z') ? value + 'Z' : value).format("DD MMM hh:mm A")
           : "-",
     },
     {

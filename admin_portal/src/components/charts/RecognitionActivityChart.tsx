@@ -25,9 +25,9 @@ export default function RecognitionActivityChart({
   const today = dayjs().format("YYYY-MM-DD");
 
   logs.forEach((log: any) => {
-    const logDate = dayjs(log.event_time).format("YYYY-MM-DD");
+    const logDate = dayjs(typeof log.event_time === 'string' && !log.event_time.endsWith('Z') ? log.event_time + 'Z' : log.event_time).format("YYYY-MM-DD");
     if (logDate === today) {
-      const hour = dayjs(log.event_time).hour();
+      const hour = dayjs(typeof log.event_time === 'string' && !log.event_time.endsWith('Z') ? log.event_time + 'Z' : log.event_time).hour();
       hourlyData[hour].count += 1;
     }
   });

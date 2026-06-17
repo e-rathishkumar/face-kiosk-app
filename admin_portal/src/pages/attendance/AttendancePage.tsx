@@ -94,14 +94,14 @@ function calculateWorkHours(
   checkOut: string | null
 ): string {
   if (!checkOut) {
-    const diff = dayjs().diff(dayjs(checkIn), "minute");
+    const diff = dayjs().diff(dayjs(typeof checkIn === 'string' && !checkIn.endsWith('Z') ? checkIn + 'Z' : checkIn), "minute");
     const h = Math.floor(diff / 60);
     const m = diff % 60;
     return `${h}h ${m}m (ongoing)`;
   }
 
-  const diff = dayjs(checkOut).diff(
-    dayjs(checkIn),
+  const diff = dayjs(typeof checkOut === 'string' && !checkOut.endsWith('Z') ? checkOut + 'Z' : checkOut).diff(
+    dayjs(typeof checkIn === 'string' && !checkIn.endsWith('Z') ? checkIn + 'Z' : checkIn),
     "minute"
   );
   const h = Math.floor(diff / 60);
@@ -136,16 +136,16 @@ export default function AttendancePage() {
           employeeMap[item.employee_id] ||
           "Unknown",
         check_in_display: dayjs(
-          item.check_in_time
+          item.check_in_time.endsWith('Z') ? item.check_in_time : `${item.check_in_time}Z`
         ).format("DD MMM YYYY hh:mm A"),
         check_out_display: item.check_out_time
-          ? dayjs(item.check_out_time).format(
+          ? dayjs(item.check_out_time.endsWith('Z') ? item.check_out_time : `${item.check_out_time}Z`).format(
               "DD MMM YYYY hh:mm A"
             )
           : "-",
         work_hours: calculateWorkHours(
-          item.check_in_time,
-          item.check_out_time
+          item.check_in_time.endsWith('Z') ? item.check_in_time : `${item.check_in_time}Z`,
+          item.check_out_time ? (item.check_out_time.endsWith('Z') ? item.check_out_time : `${item.check_out_time}Z`) : null
         ),
         checkout_type:
           item.checkout_type || "-",
@@ -183,8 +183,8 @@ export default function AttendancePage() {
     (sum: number, r: any) => {
       return (
         sum +
-        dayjs(r.check_out_time).diff(
-          dayjs(r.check_in_time),
+        dayjs(typeof r.check_out_time === 'string' && !r.check_out_time.endsWith('Z') ? r.check_out_time + 'Z' : r.check_out_time).diff(
+          dayjs(typeof r.check_in_time === 'string' && !r.check_in_time.endsWith('Z') ? r.check_in_time + 'Z' : r.check_in_time),
           "minute"
         )
       );
@@ -207,7 +207,8 @@ export default function AttendancePage() {
   });
 
   rows.forEach((record: any) => {
-    const d = dayjs(record.check_in_time).format(
+    const timeStr = record.check_in_time.endsWith('Z') ? record.check_in_time : `${record.check_in_time}Z`;
+    const d = dayjs(typeof timeStr === 'string' && !timeStr.endsWith('Z') ? timeStr + 'Z' : timeStr).format(
       "YYYY-MM-DD"
     );
     const day = dailyData.find(

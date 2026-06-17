@@ -52,7 +52,7 @@ class Employee extends Equatable {
       isNewUser: json['must_reset_password'] as bool? ?? json['is_new_user'] as bool? ?? false,
       faceRegistered: json['face_registered'] as bool? ?? true,
       joinedAt: json['joining_date'] != null
-          ? DateTime.tryParse(json['joining_date'].toString()) ?? DateTime.now()
+          ? DateTime.tryParse(json['joining_date'].toString().endsWith('Z') ? json['joining_date'].toString() : '${json['joining_date']}Z')?.toLocal() ?? DateTime.now()
           : DateTime.now(),
     );
   }

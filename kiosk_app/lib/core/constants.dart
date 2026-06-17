@@ -15,7 +15,7 @@ class AppConstants {
   static const int heartbeatIntervalSeconds = 60;
 
   // Camera
-  static const int detectionIntervalMs = 2000;
+  static const int detectionIntervalMs = 500;
   static const int cameraRecoveryDelayMs = 3000;
   static const int maxCameraRetries = 5;
 }
