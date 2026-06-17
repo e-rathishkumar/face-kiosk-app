@@ -35,8 +35,8 @@ WORKDIR $HOME/app
 # Copy project and chown to the non-root user
 COPY --chown=user . $HOME/app
 
-# Create uploads directory for persistent storage
-RUN mkdir -p $HOME/app/uploads && chown -R user $HOME/app/uploads
+# Create uploads and exports directories for persistent storage
+RUN mkdir -p $HOME/app/uploads $HOME/app/exports && chown -R user $HOME/app/uploads $HOME/app/exports
 
 # Download buffalo_sc model from GitHub directly to avoid GDrive quotas
 RUN mkdir -p $HOME/app/models/buffalo_sc && \

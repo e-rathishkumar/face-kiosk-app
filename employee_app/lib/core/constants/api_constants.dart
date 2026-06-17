@@ -1,8 +1,8 @@
 class ApiConstants {
   ApiConstants._();
 
-  /// Base URL for API
-  static const String baseUrl = 'https://rathishkumar-07-face-kiosk.hf.space';
+  /// The base URL of the FastAPI backend.
+  static const String baseUrl = 'http://10.16.24.253:8000';
 
   // Auth
   static const String login = '/auth/login';

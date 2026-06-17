@@ -18,6 +18,10 @@ Future<Uint8List?> convertCameraImageToJpeg(
 
       if (imgImage == null) return null;
 
+      // Resize image to drastically reduce network payload
+      // Insightface det_size is 160x160, so 320 is plenty of detail
+      imgImage = img.copyResize(imgImage, width: 320);
+
       // Handle rotation
       if (rotation == InputImageRotation.rotation90deg) {
         imgImage = img.copyRotate(imgImage, angle: 90);
@@ -27,7 +31,7 @@ Future<Uint8List?> convertCameraImageToJpeg(
         imgImage = img.copyRotate(imgImage, angle: 270);
       }
 
-      return img.encodeJpg(imgImage, quality: 85);
+      return img.encodeJpg(imgImage, quality: 70);
     } catch (e) {
       debugPrint('Error converting image: $e');
       return null;

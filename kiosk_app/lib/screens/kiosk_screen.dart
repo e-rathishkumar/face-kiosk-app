@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:camera/camera.dart';
 import '../core/image_converter.dart';
@@ -134,7 +133,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
 
     _cameraController = CameraController(
       frontCamera,
-      ResolutionPreset.high,
+      ResolutionPreset.medium,
       enableAudio: false,
       imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
     );
@@ -1045,10 +1044,11 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
               ),
             ),
             Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
                     width: 140.w,
                     height: 140.w,
                     decoration: BoxDecoration(
@@ -1121,7 +1121,8 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                       ],
                     ),
                   ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
@@ -1135,8 +1136,8 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
       color: const Color(0xFF1A1A2E).withOpacity(0.95),
       child: Center(
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 40.h),
-          margin: EdgeInsets.symmetric(horizontal: 40.w),
+          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 32.h),
+          margin: EdgeInsets.symmetric(horizontal: 16.w),
           decoration: BoxDecoration(
             color: const Color(0xFF16213E),
             borderRadius: BorderRadius.circular(24.r),
@@ -1149,8 +1150,9 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
               ),
             ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 padding: EdgeInsets.all(20.r),
@@ -1185,7 +1187,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 40.h),
-              Row(
+              Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (_interactiveHasActiveSession) ...[
@@ -1201,7 +1203,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                         }
                       },
                     ),
-                    SizedBox(width: 20.w),
+                    SizedBox(height: 16.h),
                   ],
                   _buildInteractiveButton(
                     _interactiveHasCheckedOutToday
@@ -1217,13 +1219,13 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                       }
                     },
                   ),
-                  SizedBox(width: 20.w),
+                  SizedBox(height: 16.h),
                   _buildInteractiveButton(
                     'No Thanks',
                     Icons.close_rounded,
                     Colors.grey,
                     () {
-                      _scheduleReturnToDetection();
+                      _closeOverlay();
                     },
                   ),
                 ],
@@ -1231,37 +1233,41 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
             ],
           ),
         ),
+        ),
       ),
     );
   }
 
   Widget _buildInteractiveButton(
       String text, IconData icon, Color color, VoidCallback onPressed) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color.withOpacity(0.15),
-        foregroundColor: color,
-        elevation: 0,
-        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.r),
-          side: BorderSide(color: color.withOpacity(0.5), width: 1.5),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 24.sp),
-          SizedBox(width: 8.w),
-          Text(
-            text,
-            style: GoogleFonts.outfit(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
-            ),
+    return SizedBox(
+      width: 240.w,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color.withOpacity(0.15),
+          foregroundColor: color,
+          elevation: 0,
+          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            side: BorderSide(color: color.withOpacity(0.5), width: 1.5),
           ),
-        ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 24.sp),
+            SizedBox(width: 12.w),
+            Text(
+              text,
+              style: GoogleFonts.outfit(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1290,10 +1296,11 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
               ),
             ),
             Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
                     width: 140.w,
                     height: 140.w,
                     decoration: BoxDecoration(
@@ -1364,7 +1371,8 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                       ],
                     ),
                   ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],

@@ -1,6 +1,4 @@
 /// Core constants for the Face Recognition Kiosk system.
-import 'dart:io';
-
 library;
 
 class AppConstants {
@@ -25,13 +23,8 @@ class AppConstants {
 class ApiConstants {
   ApiConstants._();
 
-  /// Backend URL - dynamically resolves localhost for Android emulator vs others
-  static String get baseUrl {
-    if (Platform.isAndroid) {
-      return 'http://10.0.2.2:8000/api/v1';
-    }
-    return 'http://127.0.0.1:8000/api/v1';
-  }
+  /// Backend URL - matches the FastAPI backend running locally
+  static const String baseUrl = 'https://rathishkumar-07-face-kiosk.hf.space';
 
   // Auth
   static const String login = '/auth/login';
