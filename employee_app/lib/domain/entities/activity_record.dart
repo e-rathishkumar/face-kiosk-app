@@ -15,7 +15,11 @@ class ActivityRecord {
     return ActivityRecord(
       id: json['id'] as String,
       type: json['type'] as String,
-      timestamp: DateTime.parse(json['timestamp'] as String).toLocal(),
+      timestamp: DateTime.parse(
+        (json['timestamp'] as String).endsWith('Z') 
+          ? json['timestamp'] as String 
+          : '${json['timestamp']}Z'
+      ).toLocal(),
       status: json['status'] as String?,
     );
   }

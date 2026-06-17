@@ -54,6 +54,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
   String? _interactiveEmployeeId;
   String? _interactiveName;
   bool _interactiveHasActiveSession = false;
+  bool _interactiveHasCheckedOutToday = false;
 
   final FaceDetector _faceDetector = FaceDetector(
     options: FaceDetectorOptions(
@@ -69,8 +70,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
   String? _recognizedText;
 
   // Cooldown tracking: employee_id -> last recognition time
-  final Map<String, DateTime> _checkinCooldownMap = {};
-  final Map<String, DateTime> _checkoutCooldownMap = {};
+  final Map<String, DateTime> _cooldownMap = {};
 
   @override
   void initState() {
@@ -341,6 +341,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
       final String? employeeId = result['employee_id']?.toString();
       final String? name = result['employee_name']?.toString();
       final bool hasActiveSession = result['has_active_session'] == true;
+      final bool hasCheckedOutToday = result['has_checked_out_today'] == true;
 
       if (recognized && employeeId != null) {
         if (mounted) {
@@ -353,7 +354,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
 
         final isCheckout = _state == KioskState.checkoutMode;
 
-        if (_isInCooldown(employeeId, isCheckout)) {
+        if (_isInCooldown(employeeId)) {
           if (mounted) {
             setState(() {
               _statusText = isCheckout
@@ -367,15 +368,40 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
           return;
         }
 
-        _updateCooldown(employeeId, isCheckout);
+        _updateCooldown(employeeId);
 
-        if (isCheckout) {
-          await _performCheckout(employeeId, name ?? 'Employee');
-        } else {
-          if (hasActiveSession) {
-            await _performCheckin(employeeId, name ?? 'Employee');
+        if (hasActiveSession) {
+          if (isCheckout) {
+            await _performCheckout(employeeId, name ?? 'Employee');
           } else {
-            await _performCheckin(employeeId, name ?? 'Employee');
+            // Already checked in. Recognition is already logged by backend.
+            if (mounted) {
+              setState(() {
+                _statusText = 'Face detected and logged for ${name ?? 'Employee'}';
+              });
+            }
+            _scheduleReturnToDetection();
+          }
+        } else {
+          // No active session!
+          if (hasCheckedOutToday) {
+            // Already checked out today. Show prompt to check in again, regardless of mode.
+            if (mounted) {
+              setState(() {
+                _state = KioskState.interactiveMode;
+                _interactiveEmployeeId = employeeId;
+                _interactiveName = name ?? 'Employee';
+                _interactiveHasActiveSession = false;
+                _interactiveHasCheckedOutToday = true;
+              });
+            }
+            _scheduleReturnToDetection(customSeconds: 15);
+          } else {
+            if (isCheckout) {
+              await _performCheckout(employeeId, name ?? 'Employee');
+            } else {
+              await _performCheckin(employeeId, name ?? 'Employee');
+            }
           }
         }
       } else {
@@ -449,17 +475,15 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
   }
 
 
-  bool _isInCooldown(String employeeId, bool isCheckout) {
-    final map = isCheckout ? _checkoutCooldownMap : _checkinCooldownMap;
-    final lastSeen = map[employeeId];
+  bool _isInCooldown(String employeeId) {
+    final lastSeen = _cooldownMap[employeeId];
     if (lastSeen == null) return false;
     return DateTime.now().difference(lastSeen).inSeconds <
         AppConstants.cooldownSeconds;
   }
 
-  void _updateCooldown(String employeeId, bool isCheckout) {
-    final map = isCheckout ? _checkoutCooldownMap : _checkinCooldownMap;
-    map[employeeId] = DateTime.now();
+  void _updateCooldown(String employeeId) {
+    _cooldownMap[employeeId] = DateTime.now();
   }
 
   String _getGreetingMessage(String name) {
@@ -485,12 +509,12 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
       setState(() {
         _state = KioskState.checkinSuccess;
         _employeeName = name;
-        _statusText = '${_getGreetingMessage(name)}\nCheck-in successful!';
+        _statusText = 'Check-In successful!';
       });
     } catch (e) {
       setState(() {
         _state = KioskState.error;
-        _statusText = 'Check-in failed.';
+        _statusText = 'Check-In failed.';
       });
     }
 
@@ -504,22 +528,22 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
       setState(() {
         _state = KioskState.checkoutSuccess;
         _employeeName = name;
-        _statusText = '${_getGreetingMessage(name)}\nCheck-out successful!';
+        _statusText = 'Check-Out successful!';
       });
     } catch (e) {
       setState(() {
         _state = KioskState.error;
-        _statusText = 'Checkout failed. No active session found.';
+        _statusText = 'Check-Out failed. No active session found.';
       });
     }
 
     _scheduleReturnToDetection();
   }
 
-  void _scheduleReturnToDetection() {
+  void _scheduleReturnToDetection({int? customSeconds}) {
     _returnTimer?.cancel();
     _returnTimer = Timer(
-      const Duration(seconds: AppConstants.returnToScanSeconds),
+      Duration(seconds: customSeconds ?? AppConstants.returnToScanSeconds),
       () {
         if (mounted) {
           setState(() {
@@ -534,6 +558,21 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
         }
       },
     );
+  }
+
+  void _closeOverlay() {
+    _returnTimer?.cancel();
+    if (mounted) {
+      setState(() {
+        _state = KioskState.detection;
+        _statusText = 'Scanning for faces...';
+        _employeeName = '';
+        _detectedFace = null;
+        _recognizedText = null;
+        _faceInViewRecognized = false;
+      });
+      _startDetection();
+    }
   }
 
   Timer? _checkoutTimer;
@@ -569,6 +608,11 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
 
   void _toggleCheckoutMode() {
     setState(() {
+      _detectedFace = null;
+      _recognizedText = null;
+      _faceInViewRecognized = false;
+      _isUploading = false;
+
       if (_state == KioskState.checkoutMode) {
         _cancelCheckoutTimer();
         _state = KioskState.detection;
@@ -990,85 +1034,97 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
         ),
       ),
       child: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 160.w,
-                height: 160.w,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                      colors: [Color(0xFF4CAF50), Color(0xFF81C784)]),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF4CAF50).withOpacity(0.4),
-                      blurRadius: 30,
-                      spreadRadius: 5,
-                    )
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    _employeeName.isNotEmpty
-                        ? _employeeName[0].toUpperCase()
-                        : 'E',
-                    style: GoogleFonts.outfit(
-                        fontSize: 64.sp,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white),
-                  ),
-                ),
+        child: Stack(
+          children: [
+            Positioned(
+              top: 16.h,
+              left: 16.w,
+              child: IconButton(
+                icon: Icon(Icons.arrow_back, color: Colors.white, size: 28.sp),
+                onPressed: _closeOverlay,
               ),
-              SizedBox(height: 40.h),
-              Text(
-                'Hey $_employeeName!',
-                style: GoogleFonts.outfit(
-                    fontSize: 36.sp,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 12.h),
-              Text(
-                '${_getGreeting()}! Welcome to the office.',
-                style: GoogleFonts.outfit(
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.white70),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 8.h),
-              Text(
-                'Wishing you a wonderful and productive day ahead!',
-                style:
-                    GoogleFonts.outfit(fontSize: 16.sp, color: Colors.white54),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 48.h),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(30.r),
-                  border: Border.all(color: Colors.white24),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.access_time, color: Colors.white60, size: 18.sp),
-                    SizedBox(width: 8.w),
-                    Text(
-                      'Checked in at ${TimeOfDay.now().format(context)}',
-                      style: GoogleFonts.outfit(
-                          fontSize: 14.sp, color: Colors.white60),
+            ),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 140.w,
+                    height: 140.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                          colors: [Color(0xFF4CAF50), Color(0xFF81C784)]),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF4CAF50).withOpacity(0.4),
+                          blurRadius: 30,
+                          spreadRadius: 5,
+                        )
+                      ],
                     ),
-                  ],
-                ),
+                    child: Center(
+                      child: Text(
+                        _employeeName.isNotEmpty
+                            ? _employeeName[0].toUpperCase()
+                            : 'E',
+                        style: GoogleFonts.outfit(
+                            fontSize: 56.sp,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 36.h),
+                  Text(
+                    'Hey $_employeeName!',
+                    style: GoogleFonts.outfit(
+                        fontSize: 28.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 16.h),
+                  Text(
+                    '${_getGreeting()}! Welcome to the office.',
+                    style: GoogleFonts.outfit(
+                        fontSize: 17.sp,
+                        color: Colors.white70,
+                        height: 1.5),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    'Hope you have a fantastic day!',
+                    style:
+                        GoogleFonts.outfit(fontSize: 16.sp, color: Colors.white54),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 48.h),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(30.r),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.access_time, color: Colors.white60, size: 18.sp),
+                        SizedBox(width: 8.w),
+                        Text(
+                          'Checked In at ${TimeOfDay.now().format(context)}',
+                          style: GoogleFonts.outfit(
+                              fontSize: 14.sp, color: Colors.white60),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -1119,8 +1175,8 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
               ),
               SizedBox(height: 12.h),
               Text(
-                _interactiveHasActiveSession
-                    ? 'You are already checked in. What would you like to do?'
+                _interactiveHasCheckedOutToday
+                    ? 'You have already checked out today. Do you want to check in again?'
                     : 'Welcome! What would you like to do?',
                 style: GoogleFonts.outfit(
                   fontSize: 16.sp,
@@ -1148,7 +1204,7 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
                     SizedBox(width: 20.w),
                   ],
                   _buildInteractiveButton(
-                    _interactiveHasActiveSession
+                    _interactiveHasCheckedOutToday
                         ? 'Check In Again'
                         : 'Check In',
                     Icons.login_rounded,
@@ -1223,83 +1279,95 @@ class _KioskScreenState extends State<KioskScreen> with WidgetsBindingObserver {
         ),
       ),
       child: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 140.w,
-                height: 140.w,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                      colors: [Color(0xFFFF9800), Color(0xFFFFCC80)]),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFFF9800).withOpacity(0.4),
-                      blurRadius: 30,
-                      spreadRadius: 5,
-                    )
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    _employeeName.isNotEmpty
-                        ? _employeeName[0].toUpperCase()
-                        : 'E',
-                    style: GoogleFonts.outfit(
-                        fontSize: 56.sp,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white),
-                  ),
-                ),
+        child: Stack(
+          children: [
+            Positioned(
+              top: 16.h,
+              left: 16.w,
+              child: IconButton(
+                icon: Icon(Icons.arrow_back, color: Colors.white, size: 28.sp),
+                onPressed: _closeOverlay,
               ),
-              SizedBox(height: 36.h),
-              Text(
-                'Hey $_employeeName!',
-                style: GoogleFonts.outfit(
-                    fontSize: 28.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 16.h),
-              Text(
-                'You have successfully checked out today.',
-                style: GoogleFonts.outfit(
-                    fontSize: 17.sp, color: Colors.white70, height: 1.5),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 8.h),
-              Text(
-                'Have a great evening!',
-                style:
-                    GoogleFonts.outfit(fontSize: 16.sp, color: Colors.white54),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 48.h),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(30.r),
-                  border: Border.all(color: Colors.white24),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.access_time, color: Colors.white60, size: 18.sp),
-                    SizedBox(width: 8.w),
-                    Text(
-                      'Checked out at ${TimeOfDay.now().format(context)}',
-                      style: GoogleFonts.outfit(
-                          fontSize: 14.sp, color: Colors.white60),
+            ),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 140.w,
+                    height: 140.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                          colors: [Color(0xFFFF9800), Color(0xFFFFCC80)]),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFF9800).withOpacity(0.4),
+                          blurRadius: 30,
+                          spreadRadius: 5,
+                        )
+                      ],
                     ),
-                  ],
-                ),
+                    child: Center(
+                      child: Text(
+                        _employeeName.isNotEmpty
+                            ? _employeeName[0].toUpperCase()
+                            : 'E',
+                        style: GoogleFonts.outfit(
+                            fontSize: 56.sp,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 36.h),
+                  Text(
+                    'Hey $_employeeName!',
+                    style: GoogleFonts.outfit(
+                        fontSize: 28.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 16.h),
+                  Text(
+                    'You have successfully checked out today.',
+                    style: GoogleFonts.outfit(
+                        fontSize: 17.sp, color: Colors.white70, height: 1.5),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    'Have a great evening!',
+                    style:
+                        GoogleFonts.outfit(fontSize: 16.sp, color: Colors.white54),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 48.h),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(30.r),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.access_time, color: Colors.white60, size: 18.sp),
+                        SizedBox(width: 8.w),
+                        Text(
+                          'Checked Out at ${TimeOfDay.now().format(context)}',
+                          style: GoogleFonts.outfit(
+                              fontSize: 14.sp, color: Colors.white60),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -1371,10 +1439,10 @@ class FacePainter extends CustomPainter {
       textPainter.layout();
 
       final bgRect = Rect.fromLTWH(
-          left, bottom + 4, textPainter.width + 16, textPainter.height + 8);
+          adjustedLeft, adjustedBottom + 4, textPainter.width + 16, textPainter.height + 8);
       canvas.drawRect(bgRect, Paint()..color = color.withOpacity(0.9));
 
-      textPainter.paint(canvas, Offset(left + 8, bottom + 8));
+      textPainter.paint(canvas, Offset(adjustedLeft + 8, adjustedBottom + 8));
     }
   }
 

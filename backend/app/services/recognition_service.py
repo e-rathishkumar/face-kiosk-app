@@ -110,6 +110,7 @@ class FaceRecognitionService:
         )
         
         has_active = AttendanceService.has_active_session(db, employee_id)
+        has_checked_out = AttendanceService.has_checked_out_today(db, str(employee_id))
 
         return {
             "recognized": True,
@@ -119,5 +120,6 @@ class FaceRecognitionService:
             "distance": distance,
             "confidence_score": confidence_score,
             "has_active_session": has_active,
+            "has_checked_out_today": has_checked_out,
             "timings": timing_details
         }

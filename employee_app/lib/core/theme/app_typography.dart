@@ -1,3 +1,4 @@
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -6,7 +7,7 @@ class AppTypography {
 
   // Headings
   static TextStyle get h1 => TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: GoogleFonts.outfit().fontFamily,
         fontSize: 28.sp,
         fontWeight: FontWeight.w700,
         height: 1.3,
@@ -14,7 +15,7 @@ class AppTypography {
       );
 
   static TextStyle get h2 => TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: GoogleFonts.outfit().fontFamily,
         fontSize: 24.sp,
         fontWeight: FontWeight.w700,
         height: 1.3,
@@ -22,14 +23,14 @@ class AppTypography {
       );
 
   static TextStyle get h3 => TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: GoogleFonts.outfit().fontFamily,
         fontSize: 20.sp,
         fontWeight: FontWeight.w600,
         height: 1.4,
       );
 
   static TextStyle get h4 => TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: GoogleFonts.outfit().fontFamily,
         fontSize: 18.sp,
         fontWeight: FontWeight.w600,
         height: 1.4,
@@ -37,21 +38,21 @@ class AppTypography {
 
   // Body
   static TextStyle get bodyLarge => TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: GoogleFonts.outfit().fontFamily,
         fontSize: 16.sp,
         fontWeight: FontWeight.w400,
         height: 1.5,
       );
 
   static TextStyle get bodyMedium => TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: GoogleFonts.outfit().fontFamily,
         fontSize: 14.sp,
         fontWeight: FontWeight.w400,
         height: 1.5,
       );
 
   static TextStyle get bodySmall => TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: GoogleFonts.outfit().fontFamily,
         fontSize: 12.sp,
         fontWeight: FontWeight.w400,
         height: 1.5,
@@ -59,21 +60,21 @@ class AppTypography {
 
   // Labels
   static TextStyle get labelLarge => TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: GoogleFonts.outfit().fontFamily,
         fontSize: 14.sp,
         fontWeight: FontWeight.w600,
         height: 1.4,
       );
 
   static TextStyle get labelMedium => TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: GoogleFonts.outfit().fontFamily,
         fontSize: 12.sp,
         fontWeight: FontWeight.w500,
         height: 1.4,
       );
 
   static TextStyle get labelSmall => TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: GoogleFonts.outfit().fontFamily,
         fontSize: 10.sp,
         fontWeight: FontWeight.w500,
         height: 1.4,
@@ -82,7 +83,7 @@ class AppTypography {
 
   // Caption
   static TextStyle get caption => TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: GoogleFonts.outfit().fontFamily,
         fontSize: 12.sp,
         fontWeight: FontWeight.w400,
         height: 1.4,
@@ -91,14 +92,14 @@ class AppTypography {
 
   // Button
   static TextStyle get button => TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: GoogleFonts.outfit().fontFamily,
         fontSize: 16.sp,
         fontWeight: FontWeight.w600,
         height: 1.2,
       );
 
   static TextStyle get buttonSmall => TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: GoogleFonts.outfit().fontFamily,
         fontSize: 14.sp,
         fontWeight: FontWeight.w600,
         height: 1.2,

@@ -41,20 +41,48 @@ class MonthlyStatusScreen extends StatelessWidget {
               )
             : ListView.separated(
                 itemCount: dates.length,
-                separatorBuilder: (_, __) => SizedBox(height: 8.h),
+                separatorBuilder: (context, index) => const Divider(height: 1),
                 itemBuilder: (context, index) {
-                  return Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12.r),
-                      border: Border.all(color: AppTheme.dividerColor),
+                  IconData iconData;
+                  Color iconColor;
+                  
+                  if (title.toLowerCase() == 'present') {
+                    iconData = Icons.check_circle_outline;
+                    iconColor = AppTheme.successColor;
+                  } else if (title.toLowerCase() == 'absent') {
+                    iconData = Icons.event_busy;
+                    iconColor = AppTheme.errorColor;
+                  } else {
+                    iconData = Icons.access_time;
+                    iconColor = AppTheme.warningColor;
+                  }
+
+                  return ListTile(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 0, vertical: 8.h),
+                    leading: Container(
+                      width: 48.w,
+                      height: 48.w,
+                      decoration: BoxDecoration(
+                        color: iconColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          iconData,
+                          color: iconColor,
+                          size: 24.sp,
+                        ),
+                      ),
                     ),
-                    child: Text(
+                    title: Text(
                       dates[index].toString(),
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppTheme.textPrimary,
-                        fontWeight: FontWeight.w500,
+                      style: AppTypography.labelLarge.copyWith(color: AppTheme.textPrimary),
+                    ),
+                    subtitle: Padding(
+                      padding: EdgeInsets.only(top: 4.h),
+                      child: Text(
+                        'Status: $title',
+                        style: AppTypography.caption,
                       ),
                     ),
                   );

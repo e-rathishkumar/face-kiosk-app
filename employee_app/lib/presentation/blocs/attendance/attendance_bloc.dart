@@ -137,7 +137,19 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
 
     activitiesResult.fold(
       (error) {},
-      (data) { newActivities = data; }
+      (data) {
+        // Deduplicate records to avoid multiple detections in the same minute
+        final List<ActivityRecord> deduplicated = [];
+        final seenMinutes = <String>{};
+        for (final activity in data) {
+          final minuteKey = '${activity.type}_${activity.timestamp.year}-${activity.timestamp.month}-${activity.timestamp.day}_${activity.timestamp.hour}:${activity.timestamp.minute}';
+          if (!seenMinutes.contains(minuteKey)) {
+            deduplicated.add(activity);
+            seenMinutes.add(minuteKey);
+          }
+        }
+        newActivities = deduplicated;
+      }
     );
 
     if (state is AttendanceLoaded) {

@@ -1,3 +1,4 @@
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -68,14 +69,14 @@ class AppTheme {
           surface: surfaceColor,
           error: errorColor,
         ),
-        fontFamily: 'Inter',
+        fontFamily: GoogleFonts.outfit().fontFamily,
         appBarTheme: AppBarTheme(
           backgroundColor: surfaceColor,
           foregroundColor: textPrimary,
           elevation: 0,
           centerTitle: true,
           titleTextStyle: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: GoogleFonts.outfit().fontFamily,
             fontSize: 18.sp,
             fontWeight: FontWeight.w600,
             color: textPrimary,
@@ -96,7 +97,7 @@ class AppTheme {
             minimumSize: Size(double.infinity, 52.h),
             shape: RoundedRectangleBorder(borderRadius: radiusMd),
             textStyle: TextStyle(
-              fontFamily: 'Inter',
+              fontFamily: GoogleFonts.outfit().fontFamily,
               fontSize: 16.sp,
               fontWeight: FontWeight.w600,
             ),
@@ -109,7 +110,7 @@ class AppTheme {
             shape: RoundedRectangleBorder(borderRadius: radiusMd),
             side: const BorderSide(color: primaryColor),
             textStyle: TextStyle(
-              fontFamily: 'Inter',
+              fontFamily: GoogleFonts.outfit().fontFamily,
               fontSize: 16.sp,
               fontWeight: FontWeight.w600,
             ),
@@ -136,12 +137,12 @@ class AppTheme {
             borderSide: const BorderSide(color: errorColor),
           ),
           labelStyle: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: GoogleFonts.outfit().fontFamily,
             fontSize: 14.sp,
             color: textSecondary,
           ),
           hintStyle: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: GoogleFonts.outfit().fontFamily,
             fontSize: 14.sp,
             color: textTertiary,
           ),
@@ -153,12 +154,12 @@ class AppTheme {
           type: BottomNavigationBarType.fixed,
           elevation: 8,
           selectedLabelStyle: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: GoogleFonts.outfit().fontFamily,
             fontSize: 12.sp,
             fontWeight: FontWeight.w600,
           ),
           unselectedLabelStyle: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: GoogleFonts.outfit().fontFamily,
             fontSize: 12.sp,
           ),
         ),

@@ -86,7 +86,7 @@ class ProfilePage extends StatelessWidget {
                         ],
                       ),
                       child: Center(
-                        child: user?.profilePhotoUrl != null
+                        child: user?.faceRegistered == true && user?.profilePhotoUrl != null && user!.profilePhotoUrl!.isNotEmpty && user!.profilePhotoUrl != 'null'
                             ? ClipOval(
                                 child: Image.network(
                                   user!.profilePhotoUrl!,

@@ -102,30 +102,51 @@ class DashboardPage extends StatelessWidget {
               onTap: onNavigateToProfile,
               child: Container(
                 margin: EdgeInsets.only(right: 24.w),
-                child: user?.profilePhotoUrl != null
-                    ? CircleAvatar(
-                        radius: 18.r,
-                        backgroundImage: NetworkImage(user!.profilePhotoUrl!),
-                      )
-                    : CircleAvatar(
-                        radius: 18.r,
-                        backgroundColor: AppTheme.primaryLight,
-                        child: Text(
-                          user?.firstName.isNotEmpty == true
-                              ? user!.firstName[0].toUpperCase()
-                              : 'U',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14.sp,
+                child: user?.faceRegistered == true &&
+                        user?.profilePhotoUrl != null &&
+                        user!.profilePhotoUrl!.isNotEmpty &&
+                        user!.profilePhotoUrl != 'null'
+                    ? Container(
+                        width: 36.r,
+                        height: 36.r,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color.fromARGB(255, 62, 72, 159),
+                        ),
+                        child: ClipOval(
+                          child: Image.network(
+                            user!.profilePhotoUrl!,
+                            width: 36.r,
+                            height: 36.r,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildPlaceholderAvatar(user),
                           ),
                         ),
-                      ),
+                      )
+                    : _buildPlaceholderAvatar(user),
               ),
             );
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildPlaceholderAvatar(dynamic user) {
+    return CircleAvatar(
+      radius: 18.r,
+      backgroundColor: AppTheme.primaryLight,
+      child: Text(
+        user?.firstName.isNotEmpty == true
+            ? user!.firstName[0].toUpperCase()
+            : 'U',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 14.sp,
+        ),
+      ),
     );
   }
 
@@ -239,10 +260,19 @@ class DashboardPage extends StatelessWidget {
                   final dashData =
                       state is AttendanceLoaded ? state.dashboardData : null;
                   final totalHoursRaw = dashData?['total_hours_today'];
-                  final totalHoursStr =
-                      (totalHoursRaw == null || totalHoursRaw == 0.0)
-                          ? '--:--'
-                          : '${(totalHoursRaw as num).toStringAsFixed(1)} hrs';
+                  String totalHoursStr = '--:--';
+                  if (totalHoursRaw != null && totalHoursRaw != 0.0) {
+                    final totalSeconds = ((totalHoursRaw as num) * 3600).round();
+                    if (totalSeconds < 60) {
+                      totalHoursStr = '${totalSeconds}s';
+                    } else if (totalSeconds < 3600) {
+                      totalHoursStr = '${totalSeconds ~/ 60}m';
+                    } else {
+                      final h = totalSeconds ~/ 3600;
+                      final m = (totalSeconds % 3600) ~/ 60;
+                      totalHoursStr = m > 0 ? '${h}h ${m}m' : '${h}h';
+                    }
+                  }
 
                   return Container(
                     padding:
@@ -535,21 +565,19 @@ class DashboardPage extends StatelessWidget {
           style: AppTypography.caption,
         ),
       ),
-      trailing: activity.status != null
+      trailing: (activity.status != null && !(activity.type == 'CHECK_IN' && activity.status == 'COMPLETED'))
           ? Container(
               padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
               decoration: BoxDecoration(
-                color:
-                    activity.status == 'ACTIVE' || activity.status == 'PRESENT'
-                        ? AppTheme.successColor.withOpacity(0.1)
-                        : AppTheme.warningColor.withOpacity(0.1),
+                color: (activity.status == 'ACTIVE' || activity.status == 'PRESENT' || activity.status == 'COMPLETED')
+                    ? AppTheme.successColor.withOpacity(0.1)
+                    : AppTheme.warningColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20.r),
               ),
               child: Text(
                 activity.status!,
                 style: AppTypography.labelSmall.copyWith(
-                  color: activity.status == 'ACTIVE' ||
-                          activity.status == 'PRESENT'
+                  color: (activity.status == 'ACTIVE' || activity.status == 'PRESENT' || activity.status == 'COMPLETED')
                       ? AppTheme.successColor
                       : AppTheme.warningColor,
                   fontWeight: FontWeight.w600,

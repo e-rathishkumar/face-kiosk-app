@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../blocs/auth/auth_bloc.dart';
 import '../blocs/auth/auth_event.dart';
 import '../blocs/auth/auth_state.dart';
-import 'main_shell.dart';
+import 'face_capture_page.dart';
 
 class ResetPasswordPage extends StatefulWidget {
   const ResetPasswordPage({super.key});
@@ -73,7 +73,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       listener: (context, state) {
         if (state is AuthAuthenticated && !state.user.isNewUser) {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const MainShell()),
+            MaterialPageRoute(builder: (_) => const FaceCapturePage()),
           );
         } else if (state is AuthError) {
           setState(() => _errorMessage = state.message);

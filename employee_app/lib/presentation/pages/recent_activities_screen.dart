@@ -114,11 +114,11 @@ class RecentActivitiesScreen extends StatelessWidget {
           style: AppTypography.caption,
         ),
       ),
-      trailing: activity.status != null
+      trailing: (activity.status != null && !(activity.type == 'CHECK_IN' && activity.status == 'COMPLETED'))
           ? Container(
               padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
               decoration: BoxDecoration(
-                color: activity.status == 'ACTIVE' || activity.status == 'PRESENT'
+                color: (activity.status == 'ACTIVE' || activity.status == 'PRESENT' || activity.status == 'COMPLETED')
                     ? AppTheme.successColor.withOpacity(0.1)
                     : AppTheme.warningColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20.r),
@@ -126,7 +126,7 @@ class RecentActivitiesScreen extends StatelessWidget {
               child: Text(
                 activity.status!,
                 style: AppTypography.labelSmall.copyWith(
-                  color: activity.status == 'ACTIVE' || activity.status == 'PRESENT'
+                  color: (activity.status == 'ACTIVE' || activity.status == 'PRESENT' || activity.status == 'COMPLETED')
                       ? AppTheme.successColor
                       : AppTheme.warningColor,
                   fontWeight: FontWeight.w600,

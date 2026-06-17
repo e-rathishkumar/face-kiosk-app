@@ -37,6 +37,13 @@ class AttendanceService:
         )
 
     @staticmethod
+    def has_checked_out_today(
+        db: Session,
+        employee_id: str
+    ):
+        return AttendanceRepository.has_checked_out_today(db, employee_id)
+
+    @staticmethod
     def check_in(
         db: Session,
         employee_id,

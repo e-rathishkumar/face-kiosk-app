@@ -138,3 +138,23 @@ class AttendanceRepository:
             )
             .count()
         )
+
+    @staticmethod
+    def has_checked_out_today(
+        db: Session,
+        employee_id: str
+    ):
+        from datetime import datetime, time
+        today_start = datetime.combine(datetime.utcnow().date(), time.min)
+        return (
+            db.query(
+                AttendanceSession
+            )
+            .filter(
+                AttendanceSession.employee_id == employee_id,
+                AttendanceSession.status == AttendanceStatus.COMPLETED,
+                AttendanceSession.check_out_time >= today_start
+            )
+            .first()
+            is not None
+        )
