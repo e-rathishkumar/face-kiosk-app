@@ -10,11 +10,11 @@ class FaceEmbedder:
 
     @staticmethod
     def generate_embedding(
-        image_path: str
+        image_bytes: bytes
     ):
-        image = cv2.imread(
-            image_path
-        )
+        import numpy as np
+        image_array = np.frombuffer(image_bytes, np.uint8)
+        image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
 
         faces = (
             InsightFaceService.app.get(

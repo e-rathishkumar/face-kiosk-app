@@ -14,27 +14,12 @@ class FileService:
     )
 
     @staticmethod
-    def save_face_image(file):
+    def save_face_image_bytes(filename: str, image_bytes: bytes):
+        extension = filename.split(".")[-1]
+        new_filename = f"{uuid4()}.{extension}"
+        filepath = FileService.FACE_UPLOAD_DIR / new_filename
 
-        extension = (
-            file.filename.split(".")[-1]
-        )
-
-        filename = (
-            f"{uuid4()}.{extension}"
-        )
-
-        filepath = (
-            FileService.FACE_UPLOAD_DIR
-            / filename
-        )
-
-        with open(
-            filepath,
-            "wb"
-        ) as buffer:
-            buffer.write(
-                file.file.read()
-            )
+        with open(filepath, "wb") as buffer:
+            buffer.write(image_bytes)
 
         return str(filepath)
