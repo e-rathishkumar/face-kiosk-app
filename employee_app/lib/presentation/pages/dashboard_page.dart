@@ -14,6 +14,7 @@ import '../blocs/attendance/attendance_state.dart';
 import '../blocs/auth/auth_bloc.dart';
 import '../blocs/auth/auth_state.dart';
 import 'recent_activities_screen.dart';
+import 'monthly_status_screen.dart';
 
 class DashboardPage extends StatelessWidget {
   final VoidCallback onNavigateToProfile;
@@ -238,7 +239,11 @@ class DashboardPage extends StatelessWidget {
                 child: Builder(
                   builder: (context) {
                     final dashData = state is AttendanceLoaded ? state.dashboardData : null;
-                    final totalHours = dashData?['total_hours_today'] ?? 0.0;
+                    final totalHoursRaw = dashData?['total_hours_today'];
+                    final totalHoursStr = (totalHoursRaw == null || totalHoursRaw == 0.0) 
+                        ? '--:--' 
+                        : '${(totalHoursRaw as num).toStringAsFixed(1)} hrs';
+                        
                     return Container(
                       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                       decoration: BoxDecoration(
@@ -246,7 +251,7 @@ class DashboardPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20.r),
                       ),
                       child: Text(
-                        'Total Hours: ${totalHours.toStringAsFixed(1)} hrs',
+                        'Total Hours: $totalHoursStr',
                         style: AppTypography.labelLarge.copyWith(color: Colors.white),
                       ),
                     );
@@ -303,66 +308,16 @@ class DashboardPage extends StatelessWidget {
           builder: (context, state) {
             final dashData = state is AttendanceLoaded ? state.dashboardData : null;
             // Provide some default dummy data if dashboard fetch fails or is loading
-            final present = dashData?['present_today'] ?? 21;
-            final absent = dashData?['absent_today'] ?? 2;
-            final late = dashData?['late_today'] ?? 1;
+            final present = dashData?['present_today'] ?? 0;
+            final absent = dashData?['absent_today'] ?? 0;
+            final late = dashData?['late_today'] ?? 0;
 
-            void showDatesBottomSheet(String title, List<dynamic> dates) {
-              showModalBottomSheet(
-                context: context,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+            void navigateToStatusScreen(String title, List<dynamic> dates) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => MonthlyStatusScreen(title: title, dates: dates),
                 ),
-                builder: (context) {
-                  return Container(
-                    padding: EdgeInsets.all(24.w),
-                    decoration: BoxDecoration(
-                      color: AppTheme.backgroundColor,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '$title Dates',
-                          style: AppTypography.h3.copyWith(color: AppTheme.textPrimary),
-                        ),
-                        SizedBox(height: 16.h),
-                        if (dates.isEmpty)
-                          Text(
-                            'No dates found',
-                            style: AppTypography.bodyMedium.copyWith(color: AppTheme.textSecondary),
-                          )
-                        else
-                          Expanded(
-                            child: ListView.separated(
-                              shrinkWrap: true,
-                              itemCount: dates.length,
-                              separatorBuilder: (_, __) => SizedBox(height: 8.h),
-                              itemBuilder: (context, index) {
-                                return Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12.r),
-                                    border: Border.all(color: AppTheme.dividerColor),
-                                  ),
-                                  child: Text(
-                                    dates[index].toString(),
-                                    style: AppTypography.bodyMedium.copyWith(
-                                      color: AppTheme.textPrimary,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                      ],
-                    ),
-                  );
-                },
               );
             }
 
@@ -374,7 +329,7 @@ class DashboardPage extends StatelessWidget {
                     value: present.toString(),
                     icon: Icons.check_circle_outline,
                     color: AppTheme.successColor,
-                    onTap: () => showDatesBottomSheet(Strings.present, dashData?['present_dates'] ?? []),
+                    onTap: () => navigateToStatusScreen(Strings.present, dashData?['present_dates'] ?? []),
                   ),
                 ),
                 SizedBox(width: 12.w),
@@ -384,7 +339,7 @@ class DashboardPage extends StatelessWidget {
                     value: absent.toString(),
                     icon: Icons.event_busy,
                     color: AppTheme.errorColor,
-                    onTap: () => showDatesBottomSheet(Strings.absent, dashData?['absent_dates'] ?? []),
+                    onTap: () => navigateToStatusScreen(Strings.absent, dashData?['absent_dates'] ?? []),
                   ),
                 ),
                 SizedBox(width: 12.w),
@@ -394,7 +349,7 @@ class DashboardPage extends StatelessWidget {
                     value: late.toString(),
                     icon: Icons.access_time,
                     color: AppTheme.warningColor,
-                    onTap: () => showDatesBottomSheet(Strings.late, dashData?['late_dates'] ?? []),
+                    onTap: () => navigateToStatusScreen(Strings.late, dashData?['late_dates'] ?? []),
                   ),
                 ),
               ],
